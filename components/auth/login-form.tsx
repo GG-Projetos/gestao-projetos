@@ -19,7 +19,7 @@ export function LoginForm() {
   const [success, setSuccess] = useState("")
 
   // Estados para login
-  const [loginName, setLoginNome] = useState("")
+  const [loginNome, setLoginNome] = useState("")
   const [loginEmail, setLoginEmail] = useState("")
   const [loginPassword, setLoginPassword] = useState("")
 
