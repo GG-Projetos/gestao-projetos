@@ -124,7 +124,7 @@ export function LoginForm() {
 
     try {
       console.log("🔄 Iniciando registro...")
-      const result = await register(registerNome,registerEmail, registerPassword)
+      const result = await register(registerEmail, registerPassword,registerNome)
 
       if (result.success) {
         console.log("✅ Registro bem-sucedido")
