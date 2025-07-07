@@ -1,19 +1,12 @@
 import { createClient } from "@supabase/supabase-js"
 
-/**
- * Configuração do Supabase com suas credenciais reais
- */
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ykzyuhcmvfpfyyykwfnn.supabase.co"
-const supabaseAnonKey =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlrenl1aGNtdmZwZnl5eWt3Zm5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5MDM4NDYsImV4cCI6MjA2NzQ3OTg0Nn0.7vxhXWVURboGQPCu6HkzvrMjjYPBD61cjl7ayMgZAYo"
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// Agora o Supabase está sempre pronto com suas credenciais
-export const supabaseIsReady = true
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("Missing Supabase environment variables")
+}
 
-/**
- * Cliente Supabase configurado com suas credenciais
- */
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
@@ -22,7 +15,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 })
 
-// Tipos do banco de dados
+// Tipos para as tabelas
 export interface Profile {
   id: string
   name: string

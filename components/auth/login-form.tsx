@@ -23,6 +23,16 @@ export function LoginForm() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Validação básica
+    if (!loginData.email || !loginData.password) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha email e senha.",
+        variant: "destructive",
+      })
+      return
+    }
+
     const result = await login(loginData.email, loginData.password)
 
     if (result.success) {
@@ -42,10 +52,42 @@ export function LoginForm() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Validação básica
+    if (!registerData.name || !registerData.email || !registerData.password) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validação de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(registerData.email)) {
+      toast({
+        title: "Email inválido",
+        description: "Por favor, insira um email válido.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validação de senha
     if (registerData.password.length < 6) {
       toast({
         title: "Senha muito curta",
         description: "A senha deve ter pelo menos 6 caracteres.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validação de nome
+    if (registerData.name.trim().length < 2) {
+      toast({
+        title: "Nome inválido",
+        description: "O nome deve ter pelo menos 2 caracteres.",
         variant: "destructive",
       })
       return
@@ -58,6 +100,8 @@ export function LoginForm() {
         title: "Conta criada com sucesso!",
         description: "Verifique seu email para confirmar a conta.",
       })
+      // Limpar formulário após sucesso
+      setRegisterData({ name: "", email: "", password: "" })
     } else {
       toast({
         title: "Erro no cadastro",
@@ -94,6 +138,7 @@ export function LoginForm() {
                     value={loginData.email}
                     onChange={(e) => setLoginData((prev) => ({ ...prev, email: e.target.value }))}
                     required
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -106,6 +151,7 @@ export function LoginForm() {
                       value={loginData.password}
                       onChange={(e) => setLoginData((prev) => ({ ...prev, password: e.target.value }))}
                       required
+                      disabled={isLoading}
                     />
                     <Button
                       type="button"
@@ -113,6 +159,7 @@ export function LoginForm() {
                       size="icon"
                       className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
+                      disabled={isLoading}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
@@ -142,6 +189,7 @@ export function LoginForm() {
                     value={registerData.name}
                     onChange={(e) => setRegisterData((prev) => ({ ...prev, name: e.target.value }))}
                     required
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -153,6 +201,7 @@ export function LoginForm() {
                     value={registerData.email}
                     onChange={(e) => setRegisterData((prev) => ({ ...prev, email: e.target.value }))}
                     required
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -166,6 +215,7 @@ export function LoginForm() {
                       onChange={(e) => setRegisterData((prev) => ({ ...prev, password: e.target.value }))}
                       required
                       minLength={6}
+                      disabled={isLoading}
                     />
                     <Button
                       type="button"
@@ -173,6 +223,7 @@ export function LoginForm() {
                       size="icon"
                       className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                      disabled={isLoading}
                     >
                       {showRegisterPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>

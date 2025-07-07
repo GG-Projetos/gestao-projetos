@@ -38,8 +38,10 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   // Carregar grupos do usuário
   useEffect(() => {
     if (user) {
+      console.log("🔄 Usuário logado, carregando grupos para:", user.email)
       fetchUserGroups()
     } else {
+      console.log("❌ Usuário não logado, limpando dados")
       setGroups([])
       setColumns([])
       setTasks([])
@@ -50,6 +52,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   // Carregar colunas e tarefas quando o grupo atual muda
   useEffect(() => {
     if (currentGroup) {
+      console.log("🔄 Grupo atual mudou para:", currentGroup.name)
       fetchGroupData(currentGroup.id)
     } else {
       setColumns([])
@@ -57,11 +60,16 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     }
   }, [currentGroup])
 
-  // Carregar grupos do usuário com abordagem mais robusta
+  // Carregar grupos do usuário
   const fetchUserGroups = async () => {
-    if (!user) return
+    if (!user) {
+      console.log("❌ Sem usuário para buscar grupos")
+      return
+    }
 
     try {
+      console.log("🔍 Buscando grupos para usuário:", user.id)
+
       // Primeiro, buscar os IDs dos grupos que o usuário participa
       const { data: memberData, error: memberError } = await supabase
         .from("group_members")
@@ -69,18 +77,22 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         .eq("user_id", user.id)
 
       if (memberError) {
-        console.error("Erro ao buscar memberships:", memberError)
+        console.error("❌ Erro ao buscar memberships:", memberError)
         throw memberError
       }
 
+      console.log("✅ Memberships encontrados:", memberData)
+
       // Se não há memberships, retorna array vazio
       if (!memberData || memberData.length === 0) {
+        console.log("ℹ️ Usuário não participa de nenhum grupo")
         setGroups([])
         return
       }
 
       // Extrair os IDs dos grupos
       const groupIds = memberData.map((member) => member.group_id)
+      console.log("🔍 IDs dos grupos:", groupIds)
 
       // Buscar os dados completos dos grupos
       const { data: groupsData, error: groupsError } = await supabase
@@ -90,20 +102,22 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         .order("created_at", { ascending: false })
 
       if (groupsError) {
-        console.error("Erro ao buscar grupos:", groupsError)
+        console.error("❌ Erro ao buscar grupos:", groupsError)
         throw groupsError
       }
 
+      console.log("✅ Grupos encontrados:", groupsData)
       setGroups(groupsData || [])
     } catch (error) {
-      console.error("Erro ao buscar grupos:", error)
-      setGroups([]) // Garantir que não fica em estado indefinido
+      console.error("❌ Erro ao buscar grupos:", error)
+      setGroups([])
     }
   }
 
   const fetchGroupData = async (groupId: string) => {
     try {
       setIsLoading(true)
+      console.log("🔄 Carregando dados do grupo:", groupId)
 
       // Buscar colunas
       const { data: columnsData, error: columnsError } = await supabase
@@ -112,7 +126,10 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         .eq("group_id", groupId)
         .order("order_index", { ascending: true })
 
-      if (columnsError) throw columnsError
+      if (columnsError) {
+        console.error("❌ Erro ao buscar colunas:", columnsError)
+        throw columnsError
+      }
 
       // Buscar tarefas
       const { data: tasksData, error: tasksError } = await supabase
@@ -121,12 +138,18 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         .eq("group_id", groupId)
         .order("created_at", { ascending: false })
 
-      if (tasksError) throw tasksError
+      if (tasksError) {
+        console.error("❌ Erro ao buscar tarefas:", tasksError)
+        throw tasksError
+      }
+
+      console.log("✅ Colunas encontradas:", columnsData?.length || 0)
+      console.log("✅ Tarefas encontradas:", tasksData?.length || 0)
 
       setColumns(columnsData || [])
       setTasks(tasksData || [])
     } catch (error) {
-      console.error("Erro ao buscar dados do grupo:", error)
+      console.error("❌ Erro ao buscar dados do grupo:", error)
     } finally {
       setIsLoading(false)
     }
@@ -134,68 +157,158 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
   const createGroup = async (name: string, description: string) => {
     if (!user) {
+      console.error("❌ Usuário não autenticado")
       throw new Error("Usuário não autenticado")
     }
 
-    console.log("Iniciando criação do grupo:", { name, description, userId: user.id })
+    console.log("=== 🚀 INICIANDO CRIAÇÃO DO GRUPO ===")
+    console.log("📝 Nome:", name)
+    console.log("📝 Descrição:", description)
+    console.log("👤 Usuário ID:", user.id)
+    console.log("📧 Usuário Email:", user.email)
 
     try {
-      // Criar grupo
-      console.log("Criando grupo...")
+      // Verificar se o usuário está realmente autenticado
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
+
+      if (sessionError) {
+        console.error("❌ Erro ao verificar sessão:", sessionError)
+        throw sessionError
+      }
+
+      if (!session) {
+        console.error("❌ Sessão não encontrada")
+        throw new Error("Sessão não encontrada")
+      }
+
+      console.log("✅ Sessão válida encontrada para:", session.user.email)
+
+      // Verificar se o perfil do usuário existe
+      console.log("🔍 Verificando se perfil existe...")
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single()
+
+      if (profileError && profileError.code !== "PGRST116") {
+        console.error("❌ Erro ao verificar perfil:", profileError)
+        throw profileError
+      }
+
+      if (!profileData) {
+        console.log("⚠️ Perfil não encontrado, criando...")
+        const { error: createProfileError } = await supabase.from("profiles").insert({
+          id: user.id,
+          name: user.email?.split("@")[0] || "Usuário",
+          email: user.email || "",
+        })
+
+        if (createProfileError) {
+          console.error("❌ Erro ao criar perfil:", createProfileError)
+          throw createProfileError
+        }
+        console.log("✅ Perfil criado com sucesso")
+      } else {
+        console.log("✅ Perfil encontrado:", profileData.email)
+      }
+
+      // Passo 1: Criar grupo
+      console.log("🔄 Passo 1: Criando grupo...")
+      const groupPayload = {
+        name: name.trim(),
+        description: description.trim() || null,
+        created_by: user.id,
+      }
+
+      console.log("📤 Payload do grupo:", JSON.stringify(groupPayload, null, 2))
+
       const { data: groupData, error: groupError } = await supabase
         .from("groups")
-        .insert({
-          name,
-          description,
-          created_by: user.id,
-        })
+        .insert(groupPayload)
         .select()
         .single()
 
       if (groupError) {
-        console.error("Erro ao criar grupo:", groupError)
+        console.error("❌ ERRO ao criar grupo:", groupError)
+        console.error("❌ Código do erro:", groupError.code)
+        console.error("❌ Mensagem do erro:", groupError.message)
+        console.error("❌ Detalhes completos:", JSON.stringify(groupError, null, 2))
         throw groupError
       }
 
-      console.log("Grupo criado com sucesso:", groupData)
+      console.log("✅ Grupo criado com sucesso:", groupData)
 
-      // Adicionar criador como membro owner
-      console.log("Adicionando usuário como owner...")
-      const { error: memberError } = await supabase.from("group_members").insert({
+      // Passo 2: Adicionar criador como membro owner
+      console.log("🔄 Passo 2: Adicionando usuário como owner...")
+      const memberPayload = {
         group_id: groupData.id,
         user_id: user.id,
-        role: "owner",
-      })
+        role: "owner" as const,
+      }
+
+      console.log("📤 Payload do membro:", JSON.stringify(memberPayload, null, 2))
+
+      const { data: memberData, error: memberError } = await supabase
+        .from("group_members")
+        .insert(memberPayload)
+        .select()
 
       if (memberError) {
-        console.error("Erro ao adicionar membro:", memberError)
+        console.error("❌ ERRO ao adicionar membro:", memberError)
+        console.error("❌ Código do erro:", memberError.code)
+        console.error("❌ Mensagem do erro:", memberError.message)
+        console.error("❌ Detalhes completos:", JSON.stringify(memberError, null, 2))
         throw memberError
       }
 
-      console.log("Usuário adicionado como owner com sucesso")
+      console.log("✅ Usuário adicionado como owner:", memberData)
 
-      // Criar colunas padrão
-      console.log("Criando colunas padrão...")
+      // Passo 3: Criar colunas padrão
+      console.log("🔄 Passo 3: Criando colunas padrão...")
       const defaultColumns = [
         { title: "A Fazer", group_id: groupData.id, order_index: 1 },
         { title: "Em Progresso", group_id: groupData.id, order_index: 2 },
         { title: "Concluído", group_id: groupData.id, order_index: 3 },
       ]
 
-      const { error: columnsError } = await supabase.from("columns").insert(defaultColumns)
+      console.log("📤 Payload das colunas:", JSON.stringify(defaultColumns, null, 2))
+
+      const { data: columnsData, error: columnsError } = await supabase.from("columns").insert(defaultColumns).select()
 
       if (columnsError) {
-        console.error("Erro ao criar colunas:", columnsError)
+        console.error("❌ ERRO ao criar colunas:", columnsError)
+        console.error("❌ Código do erro:", columnsError.code)
+        console.error("❌ Mensagem do erro:", columnsError.message)
+        console.error("❌ Detalhes completos:", JSON.stringify(columnsError, null, 2))
         throw columnsError
       }
 
-      console.log("Colunas padrão criadas com sucesso")
+      console.log("✅ Colunas padrão criadas:", columnsData)
 
-      // Recarregar grupos
+      // Passo 4: Recarregar grupos
+      console.log("🔄 Passo 4: Recarregando lista de grupos...")
       await fetchUserGroups()
-      console.log("Grupo criado completamente!")
+
+      console.log("🎉 GRUPO CRIADO COM SUCESSO COMPLETO!")
     } catch (error) {
-      console.error("Erro detalhado ao criar grupo:", error)
+      console.error("❌ ERRO DETALHADO ao criar grupo:")
+      console.error("❌ Tipo do erro:", typeof error)
+      console.error("❌ Erro completo:", error)
+
+      if (error && typeof error === "object") {
+        console.error("❌ Propriedades do erro:", Object.keys(error))
+        console.error("❌ JSON do erro:", JSON.stringify(error, null, 2))
+      }
+
+      // Se o erro for um objeto vazio, criar uma mensagem mais útil
+      if (error && typeof error === "object" && Object.keys(error).length === 0) {
+        throw new Error("Erro desconhecido ao criar grupo. Verifique as políticas RLS no Supabase.")
+      }
+
       throw error
     }
   }
