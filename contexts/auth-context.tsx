@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (email: string, password: string, name: string): Promise<AuthResult> => {
     try {
-      console.log("🔄 Tentando registrar usuário:", email, "com nome:", name)
+      console.log("🔄 Tentando registrar usuário:", email)
 
       // Validar email
       const normalizedEmail = email.trim().toLowerCase()
@@ -120,7 +120,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         options: {
           data: {
             name: name.trim(),
-            full_name: name.trim(),
           },
         },
       })
@@ -132,27 +131,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (data.user) {
         console.log("✅ Registro realizado com sucesso:", data.user.email)
-
-        // Criar perfil do usuário na tabela profiles
-        try {
-          const { error: profileError } = await supabase.from("profiles").insert({
-            id: data.user.id,
-            name: name.trim(),
-            email: normalizedEmail,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-
-          if (profileError) {
-            console.error("⚠️ Erro ao criar perfil:", profileError)
-            // Não falha o registro se o perfil não for criado
-          } else {
-            console.log("✅ Perfil criado com sucesso")
-          }
-        } catch (profileError) {
-          console.error("⚠️ Erro inesperado ao criar perfil:", profileError)
-        }
-
         return { success: true }
       }
 

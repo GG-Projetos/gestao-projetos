@@ -23,7 +23,6 @@ export function LoginForm() {
   const [loginPassword, setLoginPassword] = useState("")
 
   // Estados para registro
-  const [registerName, setRegisterName] = useState("")
   const [registerEmail, setRegisterEmail] = useState("")
   const [registerPassword, setRegisterPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -85,11 +84,6 @@ export function LoginForm() {
     setSuccess("")
 
     // Validações
-    if (!registerName.trim()) {
-      setError("Nome é obrigatório")
-      return
-    }
-
     if (!registerEmail.trim()) {
       setError("Email é obrigatório")
       return
@@ -119,13 +113,12 @@ export function LoginForm() {
 
     try {
       console.log("🔄 Iniciando registro...")
-      const result = await register(registerEmail, registerPassword, registerName)
+      const result = await register(registerEmail, registerPassword)
 
       if (result.success) {
         console.log("✅ Registro bem-sucedido")
         setSuccess("Conta criada com sucesso!")
         // Limpar formulário
-        setRegisterName("")
         setRegisterEmail("")
         setRegisterPassword("")
         setConfirmPassword("")
@@ -142,49 +135,41 @@ export function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-4 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto h-12 w-12 bg-primary rounded-full flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="mx-auto h-12 w-12 bg-primary rounded-full flex items-center justify-center mb-4">
             <User className="h-6 w-6 text-primary-foreground" />
           </div>
-          <div className="space-y-2">
-            <CardTitle className="text-2xl font-bold">TaskFlow</CardTitle>
-            <CardDescription>Sistema de Gestão Colaborativa</CardDescription>
-          </div>
+          <CardTitle className="text-2xl font-bold">TaskFlow</CardTitle>
+          <CardDescription>Sistema de Gestão Colaborativa</CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent>
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 h-10">
-              <TabsTrigger value="login" className="text-sm">
-                Entrar
-              </TabsTrigger>
-              <TabsTrigger value="register" className="text-sm">
-                Registrar
-              </TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Entrar</TabsTrigger>
+              <TabsTrigger value="register">Registrar</TabsTrigger>
             </TabsList>
 
             {/* Mensagens de erro e sucesso */}
             {error && (
               <Alert variant="destructive" className="mt-4">
-                <AlertDescription className="text-sm">{error}</AlertDescription>
+                <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
             {success && (
               <Alert className="mt-4 border-green-200 bg-green-50 text-green-800">
-                <AlertDescription className="text-sm">{success}</AlertDescription>
+                <AlertDescription>{success}</AlertDescription>
               </Alert>
             )}
 
             {/* Tab de Login */}
-            <TabsContent value="login" className="space-y-4 mt-4">
+            <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="login-email" className="text-sm font-medium">
-                    Email
-                  </Label>
+                  <Label htmlFor="login-email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
@@ -194,16 +179,14 @@ export function LoginForm() {
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
                       disabled={isLoading}
-                      className="pl-10 h-10"
+                      className="pl-10"
                       required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="login-password" className="text-sm font-medium">
-                    Senha
-                  </Label>
+                  <Label htmlFor="login-password">Senha</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
@@ -213,13 +196,13 @@ export function LoginForm() {
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
                       disabled={isLoading}
-                      className="pl-10 h-10"
+                      className="pl-10"
                       required
                     />
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full h-10" disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -233,31 +216,10 @@ export function LoginForm() {
             </TabsContent>
 
             {/* Tab de Registro */}
-            <TabsContent value="register" className="space-y-4 mt-4">
+            <TabsContent value="register">
               <form onSubmit={handleRegister} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="register-name" className="text-sm font-medium">
-                    Nome Completo
-                  </Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="register-name"
-                      type="text"
-                      placeholder="Seu nome completo"
-                      value={registerName}
-                      onChange={(e) => setRegisterName(e.target.value)}
-                      disabled={isLoading}
-                      className="pl-10 h-10"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="register-email" className="text-sm font-medium">
-                    Email
-                  </Label>
+                  <Label htmlFor="register-email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
@@ -267,16 +229,14 @@ export function LoginForm() {
                       value={registerEmail}
                       onChange={(e) => setRegisterEmail(e.target.value)}
                       disabled={isLoading}
-                      className="pl-10 h-10"
+                      className="pl-10"
                       required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="register-password" className="text-sm font-medium">
-                    Senha
-                  </Label>
+                  <Label htmlFor="register-password">Senha</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
@@ -286,16 +246,14 @@ export function LoginForm() {
                       value={registerPassword}
                       onChange={(e) => setRegisterPassword(e.target.value)}
                       disabled={isLoading}
-                      className="pl-10 h-10"
+                      className="pl-10"
                       required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirm-password" className="text-sm font-medium">
-                    Confirmar Senha
-                  </Label>
+                  <Label htmlFor="confirm-password">Confirmar Senha</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
@@ -305,13 +263,13 @@ export function LoginForm() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       disabled={isLoading}
-                      className="pl-10 h-10"
+                      className="pl-10"
                       required
                     />
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full h-10" disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
