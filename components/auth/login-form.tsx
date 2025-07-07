@@ -40,10 +40,7 @@ export function LoginForm() {
     setSuccess("")
 
     // Validações
-    if (!loginNome.trim()) {
-      setError("Nome é obrigatório")
-      return
-    }
+
     if (!loginEmail.trim()) {
       setError("Email é obrigatório")
       return
@@ -69,7 +66,6 @@ export function LoginForm() {
         console.log("✅ Login bem-sucedido")
         setSuccess("Login realizado com sucesso!")
         // Limpar formulário
-        setLoginNome("")
         setLoginEmail("")
         setLoginPassword("")
       } else {
