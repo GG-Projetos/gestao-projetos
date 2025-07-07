@@ -29,54 +29,42 @@ export function EditColumnModal({ open, onOpenChange, columnId }: EditColumnModa
   const { columns, updateColumn } = useTask()
   const { toast } = useToast()
 
-  const column = columns.find((col) => col.id === columnId)
+  const column = columns.find((c) => c.id === columnId)
 
   useEffect(() => {
-    if (column) {
+    if (column && open) {
       setTitle(column.title)
     }
-  }, [column])
+  }, [column, open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!title.trim()) {
       toast({
-        title: "Título obrigatório",
-        description: "Por favor, informe o título da coluna.",
+        title: "Erro",
+        description: "O título da coluna é obrigatório.",
         variant: "destructive",
       })
       return
     }
 
-    if (!column) {
-      toast({
-        title: "Coluna não encontrada",
-        description: "A coluna que você está tentando editar não foi encontrada.",
-        variant: "destructive",
-      })
-      return
-    }
+    setIsLoading(true)
 
     try {
-      setIsLoading(true)
-      console.log("🔄 Atualizando coluna:", columnId, title)
-
       await updateColumn(columnId, title.trim())
 
-      console.log("✅ Coluna atualizada com sucesso")
-
       toast({
-        title: "Coluna atualizada!",
-        description: `A coluna foi renomeada para "${title}".`,
+        title: "Coluna atualizada",
+        description: "A coluna foi atualizada com sucesso.",
       })
 
       onOpenChange(false)
     } catch (error) {
-      console.error("❌ Erro ao atualizar coluna:", error)
+      console.error("Erro ao atualizar coluna:", error)
       toast({
-        title: "Erro ao atualizar coluna",
-        description: "Ocorreu um erro ao atualizar a coluna. Tente novamente.",
+        title: "Erro",
+        description: "Não foi possível atualizar a coluna. Tente novamente.",
         variant: "destructive",
       })
     } finally {
@@ -84,38 +72,46 @@ export function EditColumnModal({ open, onOpenChange, columnId }: EditColumnModa
     }
   }
 
-  if (!column) {
-    return null
+  const handleClose = () => {
+    if (!isLoading) {
+      onOpenChange(false)
+    }
   }
 
+  if (!column) return null
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[425px] mx-4">
         <DialogHeader>
           <DialogTitle>Editar Coluna</DialogTitle>
-          <DialogDescription>Altere o título da coluna "{column.title}".</DialogDescription>
+          <DialogDescription>Modifique o título da coluna.</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="title">Título da Coluna *</Label>
-              <Input
-                id="title"
-                placeholder="Ex: Em Revisão, Aguardando Aprovação..."
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                disabled={isLoading}
-                required
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Título da Coluna</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Digite o novo título"
+              disabled={isLoading}
+              required
+            />
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={isLoading}
+              className="w-full sm:w-auto bg-transparent"
+            >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
               {isLoading ? "Salvando..." : "Salvar Alterações"}
             </Button>
           </DialogFooter>

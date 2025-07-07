@@ -55,16 +55,18 @@ export function DraggableColumn({
 
   return (
     <>
-      <Card className="w-80 flex-shrink-0 bg-gray-50">
-        <CardHeader className="pb-3">
+      <Card className="w-72 sm:w-80 flex-shrink-0 bg-gray-50 h-fit max-h-full flex flex-col">
+        <CardHeader className="pb-3 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-gray-900">{column.title}</h3>
-              <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">{tasks.length}</span>
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{column.title}</h3>
+              <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full flex-shrink-0">
+                {tasks.length}
+              </span>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -86,7 +88,7 @@ export function DraggableColumn({
           </div>
         </CardHeader>
         <CardContent
-          className="space-y-3 min-h-[200px]"
+          className="space-y-3 min-h-[200px] flex-1 overflow-y-auto"
           onDragOver={onTaskDragOver}
           onDrop={(e) => onTaskDrop(e, column.id)}
         >
@@ -94,9 +96,9 @@ export function DraggableColumn({
             <EnhancedTaskCard key={task.id} task={task} onDragStart={(e) => onTaskDragStart(e, task.id)} />
           ))}
           {tasks.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-6 sm:py-8 text-gray-500">
               <p className="text-sm">Nenhuma tarefa ainda</p>
-              <Button variant="ghost" size="sm" onClick={handleCreateTask} className="mt-2">
+              <Button variant="ghost" size="sm" onClick={handleCreateTask} className="mt-2 w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Adicionar primeira tarefa
               </Button>

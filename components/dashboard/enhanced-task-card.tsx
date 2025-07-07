@@ -77,16 +77,20 @@ export function EnhancedTaskCard({ task, onDragStart }: EnhancedTaskCardProps) {
   return (
     <>
       <Card
-        className="cursor-move hover:shadow-md transition-shadow bg-white border border-gray-200 group"
+        className="cursor-move hover:shadow-md transition-shadow bg-white border border-gray-200 group touch-manipulation"
         draggable
         onDragStart={onDragStart}
       >
         <CardHeader className="pb-2">
-          <div className="flex items-start justify-between">
-            <h4 className="font-medium text-gray-900 text-sm leading-tight">{task.title}</h4>
+          <div className="flex items-start justify-between gap-2">
+            <h4 className="font-medium text-gray-900 text-sm leading-tight flex-1 min-w-0">{task.title}</h4>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 flex-shrink-0 sm:opacity-100"
+                >
                   <MoreHorizontal className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
@@ -105,30 +109,30 @@ export function EnhancedTaskCard({ task, onDragStart }: EnhancedTaskCardProps) {
         </CardHeader>
 
         <CardContent className="pt-0 space-y-3">
-          {task.description && <p className="text-xs text-gray-600 line-clamp-2">{task.description}</p>}
+          {task.description && <p className="text-xs text-gray-600 line-clamp-2 break-words">{task.description}</p>}
 
           {task.meta && (
             <div className="bg-blue-50 border border-blue-200 rounded-md p-2">
-              <p className="text-xs text-blue-800 font-medium">Meta: {task.meta}</p>
+              <p className="text-xs text-blue-800 font-medium break-words">Meta: {task.meta}</p>
             </div>
           )}
 
-          <div className="flex items-center justify-between">
-            <Badge className={`text-xs px-2 py-1 ${getPriorityColor(task.priority)}`}>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <Badge className={`text-xs px-2 py-1 w-fit ${getPriorityColor(task.priority)}`}>
               {getPriorityIcon(task.priority)} {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
             </Badge>
 
             <div
               className={`flex items-center gap-1 text-xs ${isOverdue(task.deadline) ? "text-red-600" : "text-gray-500"}`}
             >
-              <Calendar className="h-3 w-3" />
-              <span>{formatDate(task.deadline)}</span>
+              <Calendar className="h-3 w-3 flex-shrink-0" />
+              <span className="whitespace-nowrap">{formatDate(task.deadline)}</span>
             </div>
           </div>
 
           {task.assigned_to && (
             <div className="flex items-center gap-1 text-xs text-gray-500">
-              <User className="h-3 w-3" />
+              <User className="h-3 w-3 flex-shrink-0" />
               <span>Atribuído</span>
             </div>
           )}

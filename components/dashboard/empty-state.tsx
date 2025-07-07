@@ -1,40 +1,34 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { useTask } from "@/contexts/task-context"
-import { Users, Plus } from "lucide-react"
 import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { FolderPlus, Plus } from "lucide-react"
 import { CreateGroupModal } from "@/components/modals/create-group-modal"
 
 export function EmptyState() {
-  const { groups } = useTask()
   const [showCreateGroup, setShowCreateGroup] = useState(false)
 
   return (
     <>
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <div className="bg-gray-100 rounded-full p-6 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-            <Users className="h-12 w-12 text-gray-400" />
-          </div>
-
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            {groups.length === 0 ? "Bem-vindo!" : "Selecione um grupo"}
-          </h2>
-
-          <p className="text-gray-600 mb-6">
-            {groups.length === 0
-              ? "Crie seu primeiro grupo para começar a organizar suas tarefas de forma colaborativa."
-              : "Escolha um grupo na barra lateral para visualizar e gerenciar as tarefas."}
-          </p>
-
-          {groups.length === 0 && (
-            <Button onClick={() => setShowCreateGroup(true)} size="lg">
-              <Plus className="h-5 w-5 mr-2" />
-              Criar primeiro grupo
+      <div className="h-full flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12 px-4 sm:px-6">
+            <div className="bg-gray-100 rounded-full p-6 sm:p-8 w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 sm:mb-6 flex items-center justify-center">
+              <FolderPlus className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
+            </div>
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 text-center">
+              Bem-vindo ao Sistema de Tarefas
+            </h2>
+            <p className="text-gray-600 text-center mb-6 text-sm sm:text-base">
+              Crie seu primeiro grupo para começar a organizar suas tarefas de forma colaborativa
+            </p>
+            <Button onClick={() => setShowCreateGroup(true)} className="w-full sm:w-auto">
+              <Plus className="mr-2 h-4 w-4" />
+              Criar Primeiro Grupo
             </Button>
-          )}
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       <CreateGroupModal open={showCreateGroup} onOpenChange={setShowCreateGroup} />

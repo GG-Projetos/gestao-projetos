@@ -28,17 +28,13 @@ export function CreateColumnModal({ open, onOpenChange }: CreateColumnModalProps
   const { createColumn, currentGroup } = useTask()
   const { toast } = useToast()
 
-  const resetForm = () => {
-    setTitle("")
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!title.trim()) {
       toast({
-        title: "Título obrigatório",
-        description: "Por favor, informe o título da coluna.",
+        title: "Erro",
+        description: "O título da coluna é obrigatório.",
         variant: "destructive",
       })
       return
@@ -46,33 +42,30 @@ export function CreateColumnModal({ open, onOpenChange }: CreateColumnModalProps
 
     if (!currentGroup) {
       toast({
-        title: "Grupo não selecionado",
-        description: "Selecione um grupo antes de criar a coluna.",
+        title: "Erro",
+        description: "Nenhum grupo selecionado.",
         variant: "destructive",
       })
       return
     }
 
-    try {
-      setIsLoading(true)
-      console.log("🔄 Iniciando criação de coluna:", title)
+    setIsLoading(true)
 
+    try {
       await createColumn(title.trim())
 
-      console.log("✅ Coluna criada com sucesso, fechando modal")
-
       toast({
-        title: "Coluna criada!",
-        description: `A coluna "${title}" foi criada com sucesso.`,
+        title: "Coluna criada",
+        description: "A coluna foi criada com sucesso.",
       })
 
-      resetForm()
+      setTitle("")
       onOpenChange(false)
     } catch (error) {
-      console.error("❌ Erro ao criar coluna:", error)
+      console.error("Erro ao criar coluna:", error)
       toast({
-        title: "Erro ao criar coluna",
-        description: "Ocorreu um erro ao criar a coluna. Tente novamente.",
+        title: "Erro",
+        description: "Não foi possível criar a coluna. Tente novamente.",
         variant: "destructive",
       })
     } finally {
@@ -80,41 +73,45 @@ export function CreateColumnModal({ open, onOpenChange }: CreateColumnModalProps
     }
   }
 
-  const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen) {
-      resetForm()
+  const handleClose = () => {
+    if (!isLoading) {
+      setTitle("")
+      onOpenChange(false)
     }
-    onOpenChange(newOpen)
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[425px] mx-4">
         <DialogHeader>
-          <DialogTitle>Nova Coluna</DialogTitle>
-          <DialogDescription>Criar uma nova coluna no grupo "{currentGroup?.name || "Grupo"}"</DialogDescription>
+          <DialogTitle>Criar Nova Coluna</DialogTitle>
+          <DialogDescription>Adicione uma nova coluna ao seu quadro Kanban.</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="title">Título da Coluna *</Label>
-              <Input
-                id="title"
-                placeholder="Ex: Em Revisão, Aguardando Aprovação..."
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                disabled={isLoading}
-                required
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Título da Coluna</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Ex: A Fazer, Em Progresso, Concluído"
+              disabled={isLoading}
+              required
+            />
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={isLoading}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={isLoading}
+              className="w-full sm:w-auto bg-transparent"
+            >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
               {isLoading ? "Criando..." : "Criar Coluna"}
             </Button>
           </DialogFooter>

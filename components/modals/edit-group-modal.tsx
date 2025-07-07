@@ -4,9 +4,6 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -15,9 +12,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Edit } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { useTask } from "@/contexts/task-context"
+import { useToast } from "@/hooks/use-toast"
 
 interface EditGroupModalProps {
   open: boolean
@@ -26,44 +25,54 @@ interface EditGroupModalProps {
 }
 
 export function EditGroupModal({ open, onOpenChange, groupId }: EditGroupModalProps) {
-  const { groups, updateGroup } = useTask()
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
+  const { groups, updateGroup } = useTask()
+  const { toast } = useToast()
 
   const group = groups.find((g) => g.id === groupId)
 
   useEffect(() => {
-    if (group) {
+    if (group && open) {
       setName(group.name)
       setDescription(group.description || "")
     }
-  }, [group])
+  }, [group, open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError("")
 
     if (!name.trim()) {
-      setError("Nome do grupo é obrigatório")
+      toast({
+        title: "Erro",
+        description: "O nome do grupo é obrigatório.",
+        variant: "destructive",
+      })
       return
     }
 
     setIsLoading(true)
 
     try {
-      console.log("🔄 Atualizando grupo:", name)
-      await updateGroup(groupId, name.trim(), description.trim())
-      console.log("✅ Grupo atualizado com sucesso")
+      await updateGroup(groupId, {
+        name: name.trim(),
+        description: description.trim(),
+      })
 
-      // Limpar formulário e fechar modal
-      setName("")
-      setDescription("")
+      toast({
+        title: "Grupo atualizado",
+        description: "O grupo foi atualizado com sucesso.",
+      })
+
       onOpenChange(false)
     } catch (error) {
-      console.error("❌ Erro ao atualizar grupo:", error)
-      setError("Erro ao atualizar grupo. Tente novamente.")
+      console.error("Erro ao atualizar grupo:", error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o grupo. Tente novamente.",
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -71,70 +80,57 @@ export function EditGroupModal({ open, onOpenChange, groupId }: EditGroupModalPr
 
   const handleClose = () => {
     if (!isLoading) {
-      setName("")
-      setDescription("")
-      setError("")
       onOpenChange(false)
     }
   }
 
+  if (!group) return null
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] mx-4">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Edit className="h-5 w-5" />
-            Editar Grupo
-          </DialogTitle>
-          <DialogDescription>Atualize as informações do grupo.</DialogDescription>
+          <DialogTitle>Editar Grupo</DialogTitle>
+          <DialogDescription>Modifique as informações do grupo.</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="grid gap-2">
-              <Label htmlFor="name">Nome do Grupo *</Label>
-              <Input
-                id="name"
-                placeholder="Ex: Projeto Marketing"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={isLoading}
-                required
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="description">Descrição (opcional)</Label>
-              <Textarea
-                id="description"
-                placeholder="Descreva o objetivo do grupo..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                disabled={isLoading}
-                rows={3}
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Nome do Grupo</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Digite o nome do grupo"
+              disabled={isLoading}
+              required
+            />
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading}>
+          <div className="space-y-2">
+            <Label htmlFor="description">Descrição (opcional)</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Descreva o propósito do grupo"
+              disabled={isLoading}
+              rows={3}
+            />
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={isLoading}
+              className="w-full sm:w-auto bg-transparent"
+            >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                "Salvar Alterações"
-              )}
+            <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
+              {isLoading ? "Salvando..." : "Salvar Alterações"}
             </Button>
           </DialogFooter>
         </form>

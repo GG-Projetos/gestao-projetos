@@ -25,13 +25,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Plus, Users, Settings, LogOut, MoreVertical, FolderPlus, Edit, Trash2 } from "lucide-react"
+import { Plus, Users, Settings, LogOut, MoreVertical, FolderPlus, Edit, Trash2, X } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useTask } from "@/contexts/task-context"
 import { CreateGroupModal } from "@/components/modals/create-group-modal"
 import { EditGroupModal } from "@/components/modals/edit-group-modal"
 
-export function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void
+}
+
+export function Sidebar({ onClose }: SidebarProps) {
   const { user, logout } = useAuth()
   const { groups, currentGroup, setCurrentGroup, deleteGroup } = useTask()
   const [showCreateGroup, setShowCreateGroup] = useState(false)
@@ -59,6 +63,11 @@ export function Sidebar() {
     }
   }
 
+  const handleGroupSelect = (group: any) => {
+    setCurrentGroup(group)
+    onClose?.() // Close sidebar on mobile after selection
+  }
+
   const getUserInitials = (email: string) => {
     return email
       .split("@")[0]
@@ -71,12 +80,19 @@ export function Sidebar() {
 
   return (
     <>
-      <div className="w-80 bg-background border-r flex flex-col h-full">
+      <div className="w-full h-full bg-background border-r flex flex-col">
+        {/* Mobile close button */}
+        <div className="lg:hidden flex justify-end p-4">
+          <Button variant="ghost" size="sm" onClick={onClose} className="p-2">
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
+
         {/* Header do usuário */}
         <div className="p-4 border-b">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-8 w-8">
+            <div className="flex items-center space-x-3 min-w-0 flex-1">
+              <Avatar className="h-8 w-8 flex-shrink-0">
                 <AvatarImage src={user?.user_metadata?.avatar_url || "/placeholder.svg"} />
                 <AvatarFallback className="text-xs">{user?.email ? getUserInitials(user.email) : "U"}</AvatarFallback>
               </Avatar>
@@ -89,7 +105,7 @@ export function Sidebar() {
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0">
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -111,8 +127,8 @@ export function Sidebar() {
         </div>
 
         {/* Seção de Grupos */}
-        <div className="flex-1 flex flex-col">
-          <div className="p-4">
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="p-4 flex-1 flex flex-col min-h-0">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-muted-foreground">GRUPOS</h2>
               <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setShowCreateGroup(true)}>
@@ -135,24 +151,24 @@ export function Sidebar() {
               </Card>
             ) : (
               <ScrollArea className="flex-1">
-                <div className="space-y-2">
+                <div className="space-y-2 pr-2">
                   {groups.map((group) => (
                     <Card
                       key={group.id}
                       className={`cursor-pointer transition-colors hover:bg-accent ${
                         currentGroup?.id === group.id ? "bg-accent border-primary" : ""
                       }`}
-                      onClick={() => setCurrentGroup(group)}
+                      onClick={() => handleGroupSelect(group)}
                     >
                       <CardHeader className="p-3">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between min-w-0">
                           <div className="flex-1 min-w-0">
                             <CardTitle className="text-sm font-medium truncate">{group.name}</CardTitle>
                             {group.description && (
                               <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{group.description}</p>
                             )}
                           </div>
-                          <div className="flex items-center gap-1 ml-2">
+                          <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                             <Badge variant="secondary" className="text-xs">
                               <Users className="mr-1 h-3 w-3" />1
                             </Badge>
@@ -225,7 +241,7 @@ export function Sidebar() {
 
       {/* Dialog de confirmação para excluir */}
       <AlertDialog open={!!deletingGroup} onOpenChange={() => setDeletingGroup(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="mx-4 max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Grupo</AlertDialogTitle>
             <AlertDialogDescription>
@@ -233,9 +249,9 @@ export function Sidebar() {
               dados do grupo serão perdidos.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteGroup} className="bg-red-600 hover:bg-red-700">
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteGroup} className="w-full sm:w-auto bg-red-600 hover:bg-red-700">
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
