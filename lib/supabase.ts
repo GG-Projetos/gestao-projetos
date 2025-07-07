@@ -3,19 +3,15 @@ import { createClient } from "@supabase/supabase-js"
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Missing Supabase environment variables")
-}
-
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: true,
     autoRefreshToken: true,
+    persistSession: true,
     detectSessionInUrl: true,
   },
 })
 
-// Tipos para as tabelas
+// Tipos para o banco de dados
 export interface Profile {
   id: string
   name: string
@@ -49,6 +45,9 @@ export interface Column {
   order_index: number
   created_at: string
   updated_at: string
+  // Aliases para compatibilidade
+  groupId?: string
+  order?: number
 }
 
 export interface Task {
@@ -64,4 +63,7 @@ export interface Task {
   assigned_to?: string
   created_at: string
   updated_at: string
+  // Aliases para compatibilidade
+  columnId?: string
+  groupId?: string
 }

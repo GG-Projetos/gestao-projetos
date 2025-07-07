@@ -24,10 +24,15 @@ interface CreateColumnModalProps {
 
 export function CreateColumnModal({ open, onOpenChange }: CreateColumnModalProps) {
   const [title, setTitle] = useState("")
-  const { createColumn } = useTask()
+  const [isLoading, setIsLoading] = useState(false)
+  const { createColumn, currentGroup } = useTask()
   const { toast } = useToast()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const resetForm = () => {
+    setTitle("")
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!title.trim()) {
@@ -39,23 +44,55 @@ export function CreateColumnModal({ open, onOpenChange }: CreateColumnModalProps
       return
     }
 
-    createColumn(title.trim())
+    if (!currentGroup) {
+      toast({
+        title: "Grupo não selecionado",
+        description: "Selecione um grupo antes de criar a coluna.",
+        variant: "destructive",
+      })
+      return
+    }
 
-    toast({
-      title: "Coluna criada!",
-      description: `A coluna "${title}" foi criada com sucesso.`,
-    })
+    try {
+      setIsLoading(true)
+      console.log("🔄 Iniciando criação de coluna:", title)
 
-    setTitle("")
-    onOpenChange(false)
+      await createColumn(title.trim())
+
+      console.log("✅ Coluna criada com sucesso, fechando modal")
+
+      toast({
+        title: "Coluna criada!",
+        description: `A coluna "${title}" foi criada com sucesso.`,
+      })
+
+      resetForm()
+      onOpenChange(false)
+    } catch (error) {
+      console.error("❌ Erro ao criar coluna:", error)
+      toast({
+        title: "Erro ao criar coluna",
+        description: "Ocorreu um erro ao criar a coluna. Tente novamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      resetForm()
+    }
+    onOpenChange(newOpen)
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Criar Nova Coluna</DialogTitle>
-          <DialogDescription>Adicione uma nova coluna ao quadro Kanban.</DialogDescription>
+          <DialogTitle>Nova Coluna</DialogTitle>
+          <DialogDescription>Criar uma nova coluna no grupo "{currentGroup?.name || "Grupo"}"</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
@@ -64,19 +101,22 @@ export function CreateColumnModal({ open, onOpenChange }: CreateColumnModalProps
               <Label htmlFor="title">Título da Coluna *</Label>
               <Input
                 id="title"
-                placeholder="Ex: A Fazer, Em Progresso, Concluído..."
+                placeholder="Ex: Em Revisão, Aguardando Aprovação..."
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                disabled={isLoading}
                 required
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={isLoading}>
               Cancelar
             </Button>
-            <Button type="submit">Criar Coluna</Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Criando..." : "Criar Coluna"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

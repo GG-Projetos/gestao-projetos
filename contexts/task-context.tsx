@@ -12,6 +12,7 @@ interface TaskContextType {
   currentGroup: Group | null
   isLoading: boolean
   createGroup: (name: string, description: string) => Promise<void>
+  updateGroup: (groupId: string, name: string, description: string) => Promise<void>
   joinGroup: (groupId: string) => Promise<void>
   leaveGroup: (groupId: string) => Promise<void>
   deleteGroup: (groupId: string) => Promise<void>
@@ -55,6 +56,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       console.log("🔄 Grupo atual mudou para:", currentGroup.name)
       fetchGroupData(currentGroup.id)
     } else {
+      console.log("🔄 Nenhum grupo selecionado, limpando colunas e tarefas")
       setColumns([])
       setTasks([])
     }
@@ -120,6 +122,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       console.log("🔄 Carregando dados do grupo:", groupId)
 
       // Buscar colunas
+      console.log("🔍 Buscando colunas do grupo...")
       const { data: columnsData, error: columnsError } = await supabase
         .from("columns")
         .select("*")
@@ -131,7 +134,19 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         throw columnsError
       }
 
+      console.log("✅ Colunas encontradas:", columnsData?.length || 0, columnsData)
+
+      // Adicionar aliases para compatibilidade
+      const columnsWithAliases = (columnsData || []).map((col) => ({
+        ...col,
+        groupId: col.group_id,
+        order: col.order_index,
+      }))
+
+      console.log("🔄 Colunas com aliases:", columnsWithAliases)
+
       // Buscar tarefas
+      console.log("🔍 Buscando tarefas do grupo...")
       const { data: tasksData, error: tasksError } = await supabase
         .from("tasks")
         .select("*")
@@ -143,13 +158,24 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         throw tasksError
       }
 
-      console.log("✅ Colunas encontradas:", columnsData?.length || 0)
-      console.log("✅ Tarefas encontradas:", tasksData?.length || 0)
+      console.log("✅ Tarefas encontradas:", tasksData?.length || 0, tasksData)
 
-      setColumns(columnsData || [])
-      setTasks(tasksData || [])
+      // Adicionar aliases para compatibilidade
+      const tasksWithAliases = (tasksData || []).map((task) => ({
+        ...task,
+        columnId: task.column_id,
+        groupId: task.group_id,
+      }))
+
+      // Atualizar estados
+      setColumns(columnsWithAliases)
+      setTasks(tasksWithAliases)
+
+      console.log("🎉 Dados do grupo carregados com sucesso!")
     } catch (error) {
       console.error("❌ Erro ao buscar dados do grupo:", error)
+      setColumns([])
+      setTasks([])
     } finally {
       setIsLoading(false)
     }
@@ -313,6 +339,41 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const updateGroup = async (groupId: string, name: string, description: string) => {
+    try {
+      console.log("🔄 Atualizando grupo:", groupId)
+
+      const { error } = await supabase
+        .from("groups")
+        .update({
+          name: name.trim(),
+          description: description.trim() || null,
+        })
+        .eq("id", groupId)
+
+      if (error) {
+        console.error("❌ Erro ao atualizar grupo:", error)
+        throw error
+      }
+
+      console.log("✅ Grupo atualizado com sucesso")
+
+      // Recarregar grupos
+      await fetchUserGroups()
+
+      // Se o grupo atual foi atualizado, atualizar também
+      if (currentGroup?.id === groupId) {
+        const updatedGroup = groups.find((g) => g.id === groupId)
+        if (updatedGroup) {
+          setCurrentGroup({ ...updatedGroup, name, description })
+        }
+      }
+    } catch (error) {
+      console.error("❌ Erro ao atualizar grupo:", error)
+      throw error
+    }
+  }
+
   const joinGroup = async (groupId: string) => {
     if (!user) return
 
@@ -347,9 +408,16 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
   const deleteGroup = async (groupId: string) => {
     try {
+      console.log("🗑️ Excluindo grupo:", groupId)
+
       const { error } = await supabase.from("groups").delete().eq("id", groupId)
 
-      if (error) throw error
+      if (error) {
+        console.error("❌ Erro ao excluir grupo:", error)
+        throw error
+      }
+
+      console.log("✅ Grupo excluído com sucesso")
 
       if (currentGroup?.id === groupId) {
         setCurrentGroup(null)
@@ -357,82 +425,165 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
       await fetchUserGroups()
     } catch (error) {
-      console.error("Erro ao excluir grupo:", error)
+      console.error("❌ Erro ao excluir grupo:", error)
       throw error
     }
   }
 
   const createColumn = async (title: string) => {
-    if (!currentGroup) return
+    if (!currentGroup) {
+      console.error("❌ Nenhum grupo selecionado para criar coluna")
+      throw new Error("Nenhum grupo selecionado")
+    }
 
     try {
-      const maxOrder = Math.max(...columns.map((c) => c.order_index), 0)
+      console.log("=== 🚀 INICIANDO CRIAÇÃO DA COLUNA ===")
+      console.log("📝 Título:", title)
+      console.log("🏢 Grupo:", currentGroup.name, currentGroup.id)
+      console.log("📊 Colunas atuais:", columns.length)
 
-      const { error } = await supabase.from("columns").insert({
-        title,
+      const maxOrder = Math.max(...columns.map((c) => c.order_index), 0)
+      console.log("📈 Próxima ordem:", maxOrder + 1)
+
+      const columnPayload = {
+        title: title.trim(),
         group_id: currentGroup.id,
         order_index: maxOrder + 1,
+      }
+
+      console.log("📤 Payload da coluna:", JSON.stringify(columnPayload, null, 2))
+
+      const { data, error } = await supabase.from("columns").insert(columnPayload).select().single()
+
+      if (error) {
+        console.error("❌ ERRO ao criar coluna:", error)
+        console.error("❌ Código do erro:", error.code)
+        console.error("❌ Mensagem do erro:", error.message)
+        console.error("❌ Detalhes completos:", JSON.stringify(error, null, 2))
+        throw error
+      }
+
+      console.log("✅ Coluna criada com sucesso:", data)
+
+      // Adicionar aliases para compatibilidade
+      const columnWithAliases = {
+        ...data,
+        groupId: data.group_id,
+        order: data.order_index,
+      }
+
+      // Atualizar o estado local imediatamente
+      console.log("🔄 Atualizando estado local das colunas...")
+      setColumns((prevColumns) => {
+        const newColumns = [...prevColumns, columnWithAliases]
+        console.log(
+          "📊 Novas colunas no estado:",
+          newColumns.length,
+          newColumns.map((c) => c.title),
+        )
+        return newColumns
       })
 
-      if (error) throw error
-      await fetchGroupData(currentGroup.id)
+      // Também recarregar dados do grupo para garantir sincronização
+      console.log("🔄 Recarregando dados do grupo para sincronização...")
+      setTimeout(() => {
+        fetchGroupData(currentGroup.id)
+      }, 500)
+
+      console.log("🎉 COLUNA CRIADA COM SUCESSO COMPLETO!")
     } catch (error) {
-      console.error("Erro ao criar coluna:", error)
+      console.error("❌ ERRO DETALHADO ao criar coluna:")
+      console.error("❌ Tipo do erro:", typeof error)
+      console.error("❌ Erro completo:", error)
       throw error
     }
   }
 
   const updateColumn = async (columnId: string, title: string, orderIndex?: number) => {
     try {
-      const updates: any = { title }
+      console.log("🔄 Atualizando coluna:", columnId, title)
+
+      const updates: any = { title: title.trim() }
       if (orderIndex !== undefined) {
         updates.order_index = orderIndex
       }
 
       const { error } = await supabase.from("columns").update(updates).eq("id", columnId)
 
-      if (error) throw error
+      if (error) {
+        console.error("❌ Erro ao atualizar coluna:", error)
+        throw error
+      }
+
+      console.log("✅ Coluna atualizada com sucesso")
 
       if (currentGroup) {
         await fetchGroupData(currentGroup.id)
       }
     } catch (error) {
-      console.error("Erro ao atualizar coluna:", error)
+      console.error("❌ Erro ao atualizar coluna:", error)
       throw error
     }
   }
 
   const deleteColumn = async (columnId: string) => {
     try {
+      console.log("🗑️ Excluindo coluna:", columnId)
+
       const { error } = await supabase.from("columns").delete().eq("id", columnId)
 
-      if (error) throw error
+      if (error) {
+        console.error("❌ Erro ao excluir coluna:", error)
+        throw error
+      }
+
+      console.log("✅ Coluna excluída com sucesso")
 
       if (currentGroup) {
         await fetchGroupData(currentGroup.id)
       }
     } catch (error) {
-      console.error("Erro ao excluir coluna:", error)
+      console.error("❌ Erro ao excluir coluna:", error)
       throw error
     }
   }
 
   const createTask = async (taskData: Omit<Task, "id" | "created_at" | "updated_at" | "created_by">) => {
-    if (!user) return
+    if (!user) {
+      console.error("❌ Usuário não autenticado para criar tarefa")
+      throw new Error("Usuário não autenticado")
+    }
 
     try {
-      const { error } = await supabase.from("tasks").insert({
-        ...taskData,
-        created_by: user.id,
-      })
+      console.log("🔄 Criando tarefa:", taskData)
 
-      if (error) throw error
+      const taskPayload = {
+        title: taskData.title,
+        description: taskData.description || null,
+        meta: taskData.meta || null,
+        priority: taskData.priority,
+        deadline: taskData.deadline,
+        column_id: taskData.column_id || taskData.columnId,
+        group_id: taskData.group_id || taskData.groupId,
+        created_by: user.id,
+      }
+
+      console.log("📤 Payload da tarefa:", JSON.stringify(taskPayload, null, 2))
+
+      const { error } = await supabase.from("tasks").insert(taskPayload)
+
+      if (error) {
+        console.error("❌ Erro ao criar tarefa:", error)
+        throw error
+      }
+
+      console.log("✅ Tarefa criada com sucesso")
 
       if (currentGroup) {
         await fetchGroupData(currentGroup.id)
       }
     } catch (error) {
-      console.error("Erro ao criar tarefa:", error)
+      console.error("❌ Erro ao criar tarefa:", error)
       throw error
     }
   }
@@ -469,15 +620,22 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
   const moveTask = async (taskId: string, newColumnId: string) => {
     try {
+      console.log("🔄 Movendo tarefa:", taskId, "para coluna:", newColumnId)
+
       const { error } = await supabase.from("tasks").update({ column_id: newColumnId }).eq("id", taskId)
 
-      if (error) throw error
+      if (error) {
+        console.error("❌ Erro ao mover tarefa:", error)
+        throw error
+      }
+
+      console.log("✅ Tarefa movida com sucesso")
 
       if (currentGroup) {
         await fetchGroupData(currentGroup.id)
       }
     } catch (error) {
-      console.error("Erro ao mover tarefa:", error)
+      console.error("❌ Erro ao mover tarefa:", error)
       throw error
     }
   }
@@ -491,6 +649,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         currentGroup,
         isLoading,
         createGroup,
+        updateGroup,
         joinGroup,
         leaveGroup,
         deleteGroup,

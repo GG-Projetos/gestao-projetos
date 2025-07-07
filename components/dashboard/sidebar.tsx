@@ -15,21 +15,47 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Plus, Users, Settings, LogOut, MoreVertical, FolderPlus } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Plus, Users, Settings, LogOut, MoreVertical, FolderPlus, Edit, Trash2 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useTask } from "@/contexts/task-context"
 import { CreateGroupModal } from "@/components/modals/create-group-modal"
+import { EditGroupModal } from "@/components/modals/edit-group-modal"
 
 export function Sidebar() {
   const { user, logout } = useAuth()
-  const { groups, currentGroup, setCurrentGroup } = useTask()
+  const { groups, currentGroup, setCurrentGroup, deleteGroup } = useTask()
   const [showCreateGroup, setShowCreateGroup] = useState(false)
+  const [editingGroup, setEditingGroup] = useState<string | null>(null)
+  const [deletingGroup, setDeletingGroup] = useState<{ id: string; name: string } | null>(null)
 
   const handleLogout = async () => {
     try {
       await logout()
     } catch (error) {
       console.error("Erro ao fazer logout:", error)
+    }
+  }
+
+  const handleDeleteGroup = async () => {
+    if (!deletingGroup) return
+
+    try {
+      console.log("🗑️ Excluindo grupo:", deletingGroup.name)
+      await deleteGroup(deletingGroup.id)
+      setDeletingGroup(null)
+      console.log("✅ Grupo excluído com sucesso")
+    } catch (error) {
+      console.error("❌ Erro ao excluir grupo:", error)
     }
   }
 
@@ -120,15 +146,52 @@ export function Sidebar() {
                     >
                       <CardHeader className="p-3">
                         <div className="flex items-center justify-between">
-                          <CardTitle className="text-sm font-medium truncate">{group.name}</CardTitle>
-                          <Badge variant="secondary" className="ml-2">
-                            <Users className="mr-1 h-3 w-3" />
-                            {/* Aqui você pode adicionar o número de membros */}
-                          </Badge>
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-sm font-medium truncate">{group.name}</CardTitle>
+                            {group.description && (
+                              <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{group.description}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 ml-2">
+                            <Badge variant="secondary" className="text-xs">
+                              <Users className="mr-1 h-3 w-3" />1
+                            </Badge>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="h-3 w-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setEditingGroup(group.id)
+                                  }}
+                                >
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setDeletingGroup({ id: group.id, name: group.name })
+                                  }}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </div>
-                        {group.description && (
-                          <p className="text-xs text-muted-foreground line-clamp-2">{group.description}</p>
-                        )}
                       </CardHeader>
                     </Card>
                   ))}
@@ -153,7 +216,31 @@ export function Sidebar() {
         </div>
       </div>
 
+      {/* Modais */}
       <CreateGroupModal open={showCreateGroup} onOpenChange={setShowCreateGroup} />
+
+      {editingGroup && (
+        <EditGroupModal open={!!editingGroup} onOpenChange={() => setEditingGroup(null)} groupId={editingGroup} />
+      )}
+
+      {/* Dialog de confirmação para excluir */}
+      <AlertDialog open={!!deletingGroup} onOpenChange={() => setDeletingGroup(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Grupo</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o grupo "{deletingGroup?.name}"? Esta ação não pode ser desfeita e todos os
+              dados do grupo serão perdidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteGroup} className="bg-red-600 hover:bg-red-700">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

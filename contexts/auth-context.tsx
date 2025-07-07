@@ -5,79 +5,75 @@ import { createContext, useContext, useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import type { User } from "@supabase/supabase-js"
 
+interface AuthContextType {
+  user: User | null
+  isLoading: boolean
+  login: (email: string, password: string) => Promise<AuthResult>
+  register: (email: string, password: string, name: string) => Promise<AuthResult>
+  logout: () => Promise<void>
+}
+
 interface AuthResult {
   success: boolean
   error?: string
-}
-
-interface AuthContextType {
-  user: User | null
-  loading: boolean
-  isLoading: boolean
-  login: (email: string, password: string) => Promise<AuthResult>
-  register: (name: string, email: string, password: string) => Promise<AuthResult>
-  logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Verificar sessão atual
-    const getSession = async () => {
-      try {
-        console.log("🔄 Verificando sessão atual...")
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession()
-
-        if (error) {
-          console.error("❌ Erro ao obter sessão:", error)
-        } else {
-          setUser(session?.user ?? null)
-          console.log("✅ Sessão atual:", session?.user?.email || "Nenhuma")
-        }
-      } catch (error) {
-        console.error("❌ Erro ao verificar sessão:", error)
-      } finally {
-        setLoading(false)
+    // Verificar sessão inicial
+    console.log("🔍 Verificando sessão inicial...")
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        console.log("✅ Sessão encontrada para:", session.user.email)
+        setUser(session.user)
+      } else {
+        console.log("❌ Nenhuma sessão encontrada")
       }
-    }
-
-    getSession()
+      setIsLoading(false)
+    })
 
     // Escutar mudanças de autenticação
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("🔄 Mudança de auth:", event, session?.user?.email || "Nenhum usuário")
-      setUser(session?.user ?? null)
-      setLoading(false)
+      console.log("🔄 Auth state changed:", event)
+      if (session?.user) {
+        console.log("✅ Usuário logado:", session.user.email)
+        setUser(session.user)
+      } else {
+        console.log("❌ Usuário deslogado")
+        setUser(null)
+      }
+      setIsLoading(false)
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+    return emailRegex.test(email)
+  }
+
   const login = async (email: string, password: string): Promise<AuthResult> => {
-    setIsLoading(true)
     try {
       console.log("🔄 Tentando fazer login com:", email)
 
-      // Validar email antes de enviar
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(email)) {
-        console.error("❌ Email inválido:", email)
+      // Validar email
+      const normalizedEmail = email.trim().toLowerCase()
+      if (!validateEmail(normalizedEmail)) {
+        console.error("❌ Email inválido:", normalizedEmail)
         return { success: false, error: "Formato de email inválido" }
       }
 
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
+        email: normalizedEmail,
+        password: password.trim(),
       })
 
       if (error) {
@@ -85,43 +81,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: error.message }
       }
 
-      console.log("✅ Login realizado com sucesso:", data.user?.email)
-      return { success: true }
+      if (data.user) {
+        console.log("✅ Login realizado com sucesso:", data.user.email)
+        return { success: true }
+      }
+
+      return { success: false, error: "Erro desconhecido no login" }
     } catch (error) {
-      console.error("❌ Erro ao fazer login:", error)
-      return { success: false, error: "Erro interno no login" }
-    } finally {
-      setIsLoading(false)
+      console.error("❌ Erro inesperado no login:", error)
+      return { success: false, error: "Erro inesperado. Tente novamente." }
     }
   }
 
-  const register = async (name: string, email: string, password: string): Promise<AuthResult> => {
-    setIsLoading(true)
+  const register = async (email: string, password: string, name: string): Promise<AuthResult> => {
     try {
-      console.log("🔄 Tentando registrar usuário:", { name, email })
+      console.log("🔄 Tentando registrar usuário:", email)
 
-      // Validar email antes de enviar
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(email)) {
-        console.error("❌ Email inválido:", email)
+      // Validar email
+      const normalizedEmail = email.trim().toLowerCase()
+      if (!validateEmail(normalizedEmail)) {
+        console.error("❌ Email inválido:", normalizedEmail)
         return { success: false, error: "Formato de email inválido" }
       }
 
       // Validar senha
       if (password.length < 6) {
-        console.error("❌ Senha muito curta")
         return { success: false, error: "A senha deve ter pelo menos 6 caracteres" }
       }
 
       // Validar nome
-      if (!name || name.trim().length < 2) {
-        console.error("❌ Nome inválido")
-        return { success: false, error: "Nome deve ter pelo menos 2 caracteres" }
+      if (!name.trim()) {
+        return { success: false, error: "Nome é obrigatório" }
       }
 
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password,
+        email: normalizedEmail,
+        password: password.trim(),
         options: {
           data: {
             name: name.trim(),
@@ -134,13 +129,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: error.message }
       }
 
-      console.log("✅ Registro realizado com sucesso:", data.user?.email)
-      return { success: true }
+      if (data.user) {
+        console.log("✅ Registro realizado com sucesso:", data.user.email)
+        return { success: true }
+      }
+
+      return { success: false, error: "Erro desconhecido no registro" }
     } catch (error) {
-      console.error("❌ Erro ao registrar:", error)
-      return { success: false, error: "Erro interno no registro" }
-    } finally {
-      setIsLoading(false)
+      console.error("❌ Erro inesperado no registro:", error)
+      return { success: false, error: "Erro inesperado. Tente novamente." }
     }
   }
 
@@ -148,15 +145,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log("🔄 Fazendo logout...")
       const { error } = await supabase.auth.signOut()
-
       if (error) {
         console.error("❌ Erro no logout:", error)
         throw error
       }
-
       console.log("✅ Logout realizado com sucesso")
     } catch (error) {
-      console.error("❌ Erro ao fazer logout:", error)
+      console.error("❌ Erro no logout:", error)
       throw error
     }
   }
@@ -165,7 +160,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        loading,
         isLoading,
         login,
         register,

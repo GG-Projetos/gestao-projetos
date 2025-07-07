@@ -7,95 +7,73 @@ import { useTask } from "@/contexts/task-context"
 import { Button } from "@/components/ui/button"
 import { CreateTaskModal } from "@/components/modals/create-task-modal"
 import { CreateColumnModal } from "@/components/modals/create-column-modal"
-import { EditColumnModal } from "@/components/modals/edit-column-modal"
 import { Plus } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { DraggableColumn } from "@/components/dashboard/draggable-column"
 
 export function KanbanBoard() {
-  const { currentGroup, columns, tasks, deleteColumn, moveTask, updateColumn } = useTask()
+  const { currentGroup, columns, tasks, moveTask } = useTask()
   const [showCreateTask, setShowCreateTask] = useState(false)
   const [showCreateColumn, setShowCreateColumn] = useState(false)
-  const [editingColumn, setEditingColumn] = useState<string | null>(null)
   const [selectedColumnId, setSelectedColumnId] = useState<string>("")
   const { toast } = useToast()
 
-  if (!currentGroup) return null
+  console.log("🎯 KanbanBoard renderizado:")
+  console.log("📊 Grupo atual:", currentGroup?.name)
+  console.log(
+    "📋 Colunas:",
+    columns.length,
+    columns.map((c) => ({ id: c.id, title: c.title, group_id: c.group_id })),
+  )
+  console.log("📝 Tarefas:", tasks.length)
 
-  const groupColumns = columns.filter((col) => col.groupId === currentGroup.id).sort((a, b) => a.order - b.order)
+  if (!currentGroup) {
+    console.log("❌ Nenhum grupo selecionado no KanbanBoard")
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Nenhum grupo selecionado</h2>
+          <p className="text-gray-600">Selecione um grupo na barra lateral para começar</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Filtrar colunas usando group_id (campo do banco)
+  const groupColumns = columns
+    .filter((col) => col.group_id === currentGroup.id)
+    .sort((a, b) => a.order_index - b.order_index)
+
+  console.log("🔍 Filtro aplicado:")
+  console.log("🎯 ID do grupo atual:", currentGroup.id)
+  console.log("📋 Colunas filtradas:", groupColumns.length)
 
   const handleCreateTask = (columnId: string) => {
     setSelectedColumnId(columnId)
     setShowCreateTask(true)
   }
 
-  const handleDeleteColumn = (columnId: string, columnTitle: string) => {
-    if (confirm(`Tem certeza que deseja excluir a coluna "${columnTitle}"?`)) {
-      deleteColumn(columnId)
-      toast({
-        title: "Coluna excluída",
-        description: `A coluna "${columnTitle}" foi excluída com sucesso.`,
-      })
-    }
-  }
-
-  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+  const handleTaskDragStart = (e: React.DragEvent, taskId: string) => {
+    console.log("🎯 Iniciando drag da tarefa:", taskId)
     e.dataTransfer.setData("text/plain", taskId)
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-  }
-
-  const handleDrop = (e: React.DragEvent, columnId: string) => {
-    e.preventDefault()
-
-    // Verificar se é uma tarefa
-    const taskId = e.dataTransfer.getData("text/plain")
-    if (taskId) {
-      moveTask(taskId, columnId)
-    }
-  }
-
-  const handleColumnDragStart = (e: React.DragEvent, columnId: string) => {
-    e.dataTransfer.setData("application/x-column", columnId) // Mudança aqui
     e.dataTransfer.effectAllowed = "move"
   }
 
-  const handleColumnDragOver = (e: React.DragEvent) => {
+  const handleTaskDragOver = (e: React.DragEvent) => {
     e.preventDefault()
   }
 
-  const handleColumnDrop = (e: React.DragEvent, targetColumnId: string) => {
+  const handleTaskDrop = (e: React.DragEvent, columnId: string) => {
     e.preventDefault()
-    e.stopPropagation()
 
-    const draggedColumnId = e.dataTransfer.getData("application/x-column") // Mudança aqui
-
-    if (draggedColumnId && draggedColumnId !== targetColumnId) {
-      const draggedColumn = groupColumns.find((col) => col.id === draggedColumnId)
-      const targetColumn = groupColumns.find((col) => col.id === targetColumnId)
-
-      if (draggedColumn && targetColumn) {
-        const newColumns = [...groupColumns]
-        const draggedIndex = newColumns.findIndex((col) => col.id === draggedColumnId)
-        const targetIndex = newColumns.findIndex((col) => col.id === targetColumnId)
-
-        const [removed] = newColumns.splice(draggedIndex, 1)
-        newColumns.splice(targetIndex, 0, removed)
-
-        // Atualizar apenas as ordens das colunas afetadas
-        newColumns.forEach((col, index) => {
-          if (col.order !== index + 1) {
-            updateColumn(col.id, col.title, index + 1)
-          }
-        })
-
-        toast({
-          title: "Coluna reordenada",
-          description: "A ordem das colunas foi atualizada.",
-        })
-      }
+    const taskId = e.dataTransfer.getData("text/plain")
+    if (taskId && taskId !== "undefined") {
+      console.log("🔄 Movendo tarefa:", taskId, "para coluna:", columnId)
+      moveTask(taskId, columnId)
+      toast({
+        title: "Tarefa movida",
+        description: "A tarefa foi movida com sucesso.",
+      })
     }
   }
 
@@ -119,24 +97,24 @@ export function KanbanBoard() {
         {/* Kanban Board */}
         <div className="flex-1 p-6 overflow-x-auto">
           <div className="flex gap-6 h-full min-w-max">
-            {groupColumns.map((column) => {
-              const columnTasks = tasks.filter((task) => task.columnId === column.id)
+            {groupColumns.length > 0 ? (
+              groupColumns.map((column) => {
+                const columnTasks = tasks.filter((task) => task.column_id === column.id)
+                console.log(`📋 Coluna ${column.title}: ${columnTasks.length} tarefas`)
 
-              return (
-                <DraggableColumn
-                  key={column.id}
-                  column={column}
-                  tasks={columnTasks}
-                  onDragStart={handleColumnDragStart}
-                  onDragOver={handleColumnDragOver}
-                  onDrop={handleColumnDrop}
-                  onTaskDragStart={handleDragStart}
-                  onTaskDrop={handleDrop}
-                />
-              )
-            })}
-
-            {groupColumns.length === 0 && (
+                return (
+                  <DraggableColumn
+                    key={column.id}
+                    column={column}
+                    tasks={columnTasks}
+                    onTaskDragStart={handleTaskDragStart}
+                    onTaskDragOver={handleTaskDragOver}
+                    onTaskDrop={handleTaskDrop}
+                    onCreateTask={handleCreateTask}
+                  />
+                )
+              })
+            ) : (
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
                   <div className="bg-gray-100 rounded-full p-6 w-24 h-24 mx-auto mb-4 flex items-center justify-center">
@@ -158,10 +136,6 @@ export function KanbanBoard() {
       <CreateTaskModal open={showCreateTask} onOpenChange={setShowCreateTask} columnId={selectedColumnId} />
 
       <CreateColumnModal open={showCreateColumn} onOpenChange={setShowCreateColumn} />
-
-      {editingColumn && (
-        <EditColumnModal open={!!editingColumn} onOpenChange={() => setEditingColumn(null)} columnId={editingColumn} />
-      )}
     </>
   )
 }

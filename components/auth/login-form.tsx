@@ -4,167 +4,204 @@ import type React from "react"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Loader2, Mail, Lock, User } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
-import { useToast } from "@/hooks/use-toast"
-import { Loader2, Eye, EyeOff } from "lucide-react"
 
 export function LoginForm() {
-  const [loginData, setLoginData] = useState({ email: "", password: "" })
-  const [registerData, setRegisterData] = useState({ name: "", email: "", password: "" })
-  const [showPassword, setShowPassword] = useState(false)
-  const [showRegisterPassword, setShowRegisterPassword] = useState(false)
-  const { login, register, isLoading } = useAuth()
-  const { toast } = useToast()
+  const { login, register } = useAuth()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+
+  // Estados para login
+  const [loginEmail, setLoginEmail] = useState("")
+  const [loginPassword, setLoginPassword] = useState("")
+
+  // Estados para registro
+  const [registerEmail, setRegisterEmail] = useState("")
+  const [registerPassword, setRegisterPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+
+  // Função para validar email
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
+    setSuccess("")
 
-    // Validação básica
-    if (!loginData.email || !loginData.password) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha email e senha.",
-        variant: "destructive",
-      })
+    // Validações
+    if (!loginEmail.trim()) {
+      setError("Email é obrigatório")
       return
     }
 
-    const result = await login(loginData.email, loginData.password)
+    if (!isValidEmail(loginEmail.trim())) {
+      setError("Email inválido")
+      return
+    }
 
-    if (result.success) {
-      toast({
-        title: "Login realizado com sucesso!",
-        description: "Bem-vindo ao sistema de gestão de tarefas.",
-      })
-    } else {
-      toast({
-        title: "Erro no login",
-        description: result.error || "Verifique suas credenciais e tente novamente.",
-        variant: "destructive",
-      })
+    if (!loginPassword.trim()) {
+      setError("Senha é obrigatória")
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      console.log("🔄 Iniciando login...")
+      const result = await login(loginEmail, loginPassword)
+
+      if (result.success) {
+        console.log("✅ Login bem-sucedido")
+        setSuccess("Login realizado com sucesso!")
+        // Limpar formulário
+        setLoginEmail("")
+        setLoginPassword("")
+      } else {
+        console.error("❌ Erro no login:", result.error)
+        setError(result.error || "Erro no login")
+      }
+    } catch (error) {
+      console.error("❌ Erro inesperado no login:", error)
+      setError("Erro inesperado. Tente novamente.")
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
+    setSuccess("")
 
-    // Validação básica
-    if (!registerData.name || !registerData.email || !registerData.password) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos.",
-        variant: "destructive",
-      })
+    // Validações
+    if (!registerEmail.trim()) {
+      setError("Email é obrigatório")
       return
     }
 
-    // Validação de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(registerData.email)) {
-      toast({
-        title: "Email inválido",
-        description: "Por favor, insira um email válido.",
-        variant: "destructive",
-      })
+    if (!isValidEmail(registerEmail.trim())) {
+      setError("Email inválido")
       return
     }
 
-    // Validação de senha
-    if (registerData.password.length < 6) {
-      toast({
-        title: "Senha muito curta",
-        description: "A senha deve ter pelo menos 6 caracteres.",
-        variant: "destructive",
-      })
+    if (!registerPassword.trim()) {
+      setError("Senha é obrigatória")
       return
     }
 
-    // Validação de nome
-    if (registerData.name.trim().length < 2) {
-      toast({
-        title: "Nome inválido",
-        description: "O nome deve ter pelo menos 2 caracteres.",
-        variant: "destructive",
-      })
+    if (registerPassword.length < 6) {
+      setError("Senha deve ter pelo menos 6 caracteres")
       return
     }
 
-    const result = await register(registerData.name, registerData.email, registerData.password)
+    if (registerPassword !== confirmPassword) {
+      setError("Senhas não coincidem")
+      return
+    }
 
-    if (result.success) {
-      toast({
-        title: "Conta criada com sucesso!",
-        description: "Verifique seu email para confirmar a conta.",
-      })
-      // Limpar formulário após sucesso
-      setRegisterData({ name: "", email: "", password: "" })
-    } else {
-      toast({
-        title: "Erro no cadastro",
-        description: result.error || "Verifique os dados e tente novamente.",
-        variant: "destructive",
-      })
+    setIsLoading(true)
+
+    try {
+      console.log("🔄 Iniciando registro...")
+      const result = await register(registerEmail, registerPassword)
+
+      if (result.success) {
+        console.log("✅ Registro bem-sucedido")
+        setSuccess("Conta criada com sucesso!")
+        // Limpar formulário
+        setRegisterEmail("")
+        setRegisterPassword("")
+        setConfirmPassword("")
+      } else {
+        console.error("❌ Erro no registro:", result.error)
+        setError(result.error || "Erro no registro")
+      }
+    } catch (error) {
+      console.error("❌ Erro inesperado no registro:", error)
+      setError("Erro inesperado. Tente novamente.")
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
-      <Card className="w-full max-w-md shadow-xl">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            Gestão de Tarefas
-          </CardTitle>
-          <CardDescription>Sistema colaborativo de gestão de tarefas</CardDescription>
+          <div className="mx-auto h-12 w-12 bg-primary rounded-full flex items-center justify-center mb-4">
+            <User className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <CardTitle className="text-2xl font-bold">TaskFlow</CardTitle>
+          <CardDescription>Sistema de Gestão Colaborativa</CardDescription>
         </CardHeader>
+
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Cadastro</TabsTrigger>
+              <TabsTrigger value="login">Entrar</TabsTrigger>
+              <TabsTrigger value="register">Registrar</TabsTrigger>
             </TabsList>
 
+            {/* Mensagens de erro e sucesso */}
+            {error && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {success && (
+              <Alert className="mt-4 border-green-200 bg-green-50 text-green-800">
+                <AlertDescription>{success}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Tab de Login */}
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={loginData.email}
-                    onChange={(e) => setLoginData((prev) => ({ ...prev, email: e.target.value }))}
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Senha</Label>
+                  <Label htmlFor="login-email">Email</Label>
                   <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Sua senha"
-                      value={loginData.password}
-                      onChange={(e) => setLoginData((prev) => ({ ...prev, password: e.target.value }))}
+                      id="login-email"
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      disabled={isLoading}
+                      className="pl-10"
                       required
-                      disabled={isLoading}
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                      disabled={isLoading}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="login-password">Senha</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="login-password"
+                      type="password"
+                      placeholder="Sua senha"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      disabled={isLoading}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? (
                     <>
@@ -178,57 +215,60 @@ export function LoginForm() {
               </form>
             </TabsContent>
 
+            {/* Tab de Registro */}
             <TabsContent value="register">
               <form onSubmit={handleRegister} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nome completo</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Seu nome completo"
-                    value={registerData.name}
-                    onChange={(e) => setRegisterData((prev) => ({ ...prev, name: e.target.value }))}
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="register-email">Email</Label>
-                  <Input
-                    id="register-email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={registerData.email}
-                    onChange={(e) => setRegisterData((prev) => ({ ...prev, email: e.target.value }))}
-                    required
-                    disabled={isLoading}
-                  />
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="register-email"
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={registerEmail}
+                      onChange={(e) => setRegisterEmail(e.target.value)}
+                      disabled={isLoading}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="register-password">Senha</Label>
                   <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="register-password"
-                      type={showRegisterPassword ? "text" : "password"}
+                      type="password"
                       placeholder="Mínimo 6 caracteres"
-                      value={registerData.password}
-                      onChange={(e) => setRegisterData((prev) => ({ ...prev, password: e.target.value }))}
+                      value={registerPassword}
+                      onChange={(e) => setRegisterPassword(e.target.value)}
+                      disabled={isLoading}
+                      className="pl-10"
                       required
-                      minLength={6}
-                      disabled={isLoading}
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowRegisterPassword(!showRegisterPassword)}
-                      disabled={isLoading}
-                    >
-                      {showRegisterPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirmar Senha</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      placeholder="Confirme sua senha"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      disabled={isLoading}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? (
                     <>

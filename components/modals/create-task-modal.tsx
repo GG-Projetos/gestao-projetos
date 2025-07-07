@@ -31,11 +31,22 @@ export function CreateTaskModal({ open, onOpenChange, columnId }: CreateTaskModa
   const [meta, setMeta] = useState("")
   const [priority, setPriority] = useState<"baixa" | "media" | "alta">("media")
   const [deadline, setDeadline] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
-  const { createTask, currentGroup } = useTask()
+  const { createTask, currentGroup, columns } = useTask()
   const { toast } = useToast()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const column = columns.find((col) => col.id === columnId)
+
+  const resetForm = () => {
+    setTitle("")
+    setDescription("")
+    setMeta("")
+    setPriority("media")
+    setDeadline("")
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!title.trim()) {
@@ -56,38 +67,75 @@ export function CreateTaskModal({ open, onOpenChange, columnId }: CreateTaskModa
       return
     }
 
-    if (!currentGroup) return
+    if (!currentGroup) {
+      toast({
+        title: "Grupo não selecionado",
+        description: "Selecione um grupo antes de criar a tarefa.",
+        variant: "destructive",
+      })
+      return
+    }
 
-    createTask({
-      title: title.trim(),
-      description: description.trim(),
-      meta: meta.trim() || undefined,
-      priority,
-      deadline,
-      columnId,
-      groupId: currentGroup.id,
-    })
+    if (!columnId) {
+      toast({
+        title: "Coluna não selecionada",
+        description: "Selecione uma coluna para criar a tarefa.",
+        variant: "destructive",
+      })
+      return
+    }
 
-    toast({
-      title: "Tarefa criada!",
-      description: `A tarefa "${title}" foi criada com sucesso.`,
-    })
+    try {
+      setIsLoading(true)
+      console.log("🔄 Criando tarefa na coluna:", columnId)
 
-    // Reset form
-    setTitle("")
-    setDescription("")
-    setMeta("")
-    setPriority("media")
-    setDeadline("")
-    onOpenChange(false)
+      await createTask({
+        title: title.trim(),
+        description: description.trim() || undefined,
+        meta: meta.trim() || undefined,
+        priority,
+        deadline,
+        column_id: columnId,
+        group_id: currentGroup.id,
+      })
+
+      console.log("✅ Tarefa criada com sucesso")
+
+      toast({
+        title: "Tarefa criada!",
+        description: `A tarefa "${title}" foi criada com sucesso.`,
+      })
+
+      resetForm()
+      onOpenChange(false)
+    } catch (error) {
+      console.error("❌ Erro ao criar tarefa:", error)
+      toast({
+        title: "Erro ao criar tarefa",
+        description: "Ocorreu um erro ao criar a tarefa. Tente novamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      resetForm()
+    }
+    onOpenChange(newOpen)
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Criar Nova Tarefa</DialogTitle>
-          <DialogDescription>Adicione uma nova tarefa ao quadro.</DialogDescription>
+          <DialogTitle>Nova Tarefa</DialogTitle>
+          <DialogDescription>
+            Criar uma nova tarefa na coluna "{column?.title || "Coluna"}"
+            {currentGroup && ` do grupo "${currentGroup.name}"`}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
@@ -99,19 +147,20 @@ export function CreateTaskModal({ open, onOpenChange, columnId }: CreateTaskModa
                 placeholder="Digite o título da tarefa..."
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                disabled={isLoading}
                 required
               />
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="description">Descrição *</Label>
+              <Label htmlFor="description">Descrição</Label>
               <Textarea
                 id="description"
                 placeholder="Descreva a tarefa..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                disabled={isLoading}
                 rows={3}
-                required
               />
             </div>
 
@@ -122,13 +171,18 @@ export function CreateTaskModal({ open, onOpenChange, columnId }: CreateTaskModa
                 placeholder="Ex: Aumentar vendas em 20%..."
                 value={meta}
                 onChange={(e) => setMeta(e.target.value)}
+                disabled={isLoading}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="priority">Prioridade *</Label>
-                <Select value={priority} onValueChange={(value: "baixa" | "media" | "alta") => setPriority(value)}>
+                <Select
+                  value={priority}
+                  onValueChange={(value: "baixa" | "media" | "alta") => setPriority(value)}
+                  disabled={isLoading}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a prioridade" />
                   </SelectTrigger>
@@ -147,6 +201,7 @@ export function CreateTaskModal({ open, onOpenChange, columnId }: CreateTaskModa
                   type="date"
                   value={deadline}
                   onChange={(e) => setDeadline(e.target.value)}
+                  disabled={isLoading}
                   required
                 />
               </div>
@@ -154,10 +209,12 @@ export function CreateTaskModal({ open, onOpenChange, columnId }: CreateTaskModa
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={isLoading}>
               Cancelar
             </Button>
-            <Button type="submit">Criar Tarefa</Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Criando..." : "Criar Tarefa"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

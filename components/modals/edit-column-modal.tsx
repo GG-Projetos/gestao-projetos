@@ -25,10 +25,11 @@ interface EditColumnModalProps {
 
 export function EditColumnModal({ open, onOpenChange, columnId }: EditColumnModalProps) {
   const [title, setTitle] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const { columns, updateColumn } = useTask()
   const { toast } = useToast()
 
-  const column = columns.find((c) => c.id === columnId)
+  const column = columns.find((col) => col.id === columnId)
 
   useEffect(() => {
     if (column) {
@@ -36,7 +37,7 @@ export function EditColumnModal({ open, onOpenChange, columnId }: EditColumnModa
     }
   }, [column])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!title.trim()) {
@@ -48,24 +49,51 @@ export function EditColumnModal({ open, onOpenChange, columnId }: EditColumnModa
       return
     }
 
-    updateColumn(columnId, title.trim()) // Removido o terceiro parâmetro
+    if (!column) {
+      toast({
+        title: "Coluna não encontrada",
+        description: "A coluna que você está tentando editar não foi encontrada.",
+        variant: "destructive",
+      })
+      return
+    }
 
-    toast({
-      title: "Coluna atualizada!",
-      description: `A coluna foi atualizada com sucesso.`,
-    })
+    try {
+      setIsLoading(true)
+      console.log("🔄 Atualizando coluna:", columnId, title)
 
-    onOpenChange(false)
+      await updateColumn(columnId, title.trim())
+
+      console.log("✅ Coluna atualizada com sucesso")
+
+      toast({
+        title: "Coluna atualizada!",
+        description: `A coluna foi renomeada para "${title}".`,
+      })
+
+      onOpenChange(false)
+    } catch (error) {
+      console.error("❌ Erro ao atualizar coluna:", error)
+      toast({
+        title: "Erro ao atualizar coluna",
+        description: "Ocorreu um erro ao atualizar a coluna. Tente novamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  if (!column) return null
+  if (!column) {
+    return null
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Editar Coluna</DialogTitle>
-          <DialogDescription>Altere o título da coluna.</DialogDescription>
+          <DialogDescription>Altere o título da coluna "{column.title}".</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
@@ -74,19 +102,22 @@ export function EditColumnModal({ open, onOpenChange, columnId }: EditColumnModa
               <Label htmlFor="title">Título da Coluna *</Label>
               <Input
                 id="title"
-                placeholder="Ex: A Fazer, Em Progresso, Concluído..."
+                placeholder="Ex: Em Revisão, Aguardando Aprovação..."
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                disabled={isLoading}
                 required
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
               Cancelar
             </Button>
-            <Button type="submit">Salvar Alterações</Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Salvando..." : "Salvar Alterações"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
