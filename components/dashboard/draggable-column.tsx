@@ -16,9 +16,9 @@ import { EditColumnModal } from "@/components/modals/edit-column-modal"
 interface DraggableColumnProps {
   column: Column
   tasks: Task[]
-  onTaskDragStart: (e: React.DragEvent, taskId: string) => void
-  onTaskDragOver: (e: React.DragEvent) => void
-  onTaskDrop: (e: React.DragEvent, columnId: string) => void
+  onTaskDragStart?: (e: React.DragEvent, taskId: string) => void
+  onTaskDragOver?: (e: React.DragEvent) => void
+  onTaskDrop?: (e: React.DragEvent, columnId: string) => void
   onCreateTask: (columnId: string) => void
 }
 
@@ -34,6 +34,11 @@ export function DraggableColumn({
   const { toast } = useToast()
   const [showCreateTask, setShowCreateTask] = useState(false)
   const [showEditColumn, setShowEditColumn] = useState(false)
+
+  const noop = () => {}
+  const handleDragStart = onTaskDragStart ?? noop
+  const handleDragOver = onTaskDragOver ?? noop
+  const handleDrop = onTaskDrop ?? noop
 
   const handleDeleteColumn = () => {
     if (confirm(`Tem certeza que deseja excluir a coluna "${column.title}"?`)) {
@@ -89,11 +94,11 @@ export function DraggableColumn({
         </CardHeader>
         <CardContent
           className="space-y-3 min-h-[200px] flex-1 overflow-y-auto"
-          onDragOver={onTaskDragOver}
-          onDrop={(e) => onTaskDrop(e, column.id)}
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDrop(e, column.id)}
         >
           {tasks.map((task) => (
-            <EnhancedTaskCard key={task.id} task={task} onDragStart={(e) => onTaskDragStart(e, task.id)} />
+            <EnhancedTaskCard key={task.id} task={task} onDragStart={(e) => handleDragStart(e, task.id)} />
           ))}
           {tasks.length === 0 && (
             <div className="text-center py-6 sm:py-8 text-gray-500">

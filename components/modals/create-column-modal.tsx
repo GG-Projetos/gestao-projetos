@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useTask } from "@/contexts/task-context"
 import { useToast } from "@/hooks/use-toast"
+import { Loader2 } from "lucide-react"
 
 interface CreateColumnModalProps {
   open: boolean
@@ -33,8 +34,8 @@ export function CreateColumnModal({ open, onOpenChange }: CreateColumnModalProps
 
     if (!title.trim()) {
       toast({
-        title: "Erro",
-        description: "O título da coluna é obrigatório.",
+        title: "Título obrigatório",
+        description: "Por favor, informe o título da coluna.",
         variant: "destructive",
       })
       return
@@ -49,14 +50,13 @@ export function CreateColumnModal({ open, onOpenChange }: CreateColumnModalProps
       return
     }
 
-    setIsLoading(true)
-
     try {
+      setIsLoading(true)
       await createColumn(title.trim())
 
       toast({
-        title: "Coluna criada",
-        description: "A coluna foi criada com sucesso.",
+        title: "Coluna criada!",
+        description: `A coluna "${title}" foi criada com sucesso.`,
       })
 
       setTitle("")
@@ -64,8 +64,8 @@ export function CreateColumnModal({ open, onOpenChange }: CreateColumnModalProps
     } catch (error) {
       console.error("Erro ao criar coluna:", error)
       toast({
-        title: "Erro",
-        description: "Não foi possível criar a coluna. Tente novamente.",
+        title: "Erro ao criar coluna",
+        description: "Tente novamente mais tarde.",
         variant: "destructive",
       })
     } finally {
@@ -73,46 +73,50 @@ export function CreateColumnModal({ open, onOpenChange }: CreateColumnModalProps
     }
   }
 
-  const handleClose = () => {
-    if (!isLoading) {
-      setTitle("")
-      onOpenChange(false)
-    }
-  }
-
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] mx-4">
         <DialogHeader>
           <DialogTitle>Criar Nova Coluna</DialogTitle>
-          <DialogDescription>Adicione uma nova coluna ao seu quadro Kanban.</DialogDescription>
+          <DialogDescription>
+            Adicione uma nova coluna ao quadro Kanban do grupo "{currentGroup?.name}".
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Título da Coluna</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: A Fazer, Em Progresso, Concluído"
-              disabled={isLoading}
-              required
-            />
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="title">Título da Coluna *</Label>
+              <Input
+                id="title"
+                placeholder="Ex: A Fazer, Em Progresso, Concluído..."
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
           </div>
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               type="button"
               variant="outline"
-              onClick={handleClose}
+              onClick={() => onOpenChange(false)}
               disabled={isLoading}
-              className="w-full sm:w-auto bg-transparent"
+              className="w-full sm:w-auto"
             >
               Cancelar
             </Button>
             <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
-              {isLoading ? "Criando..." : "Criar Coluna"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Criando...
+                </>
+              ) : (
+                "Criar Coluna"
+              )}
             </Button>
           </DialogFooter>
         </form>
