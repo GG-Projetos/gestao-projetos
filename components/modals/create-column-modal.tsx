@@ -3,20 +3,12 @@
 import type React from "react"
 
 import { useState } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useTask } from "@/contexts/task-context"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2 } from "lucide-react"
 
 interface CreateColumnModalProps {
   open: boolean
@@ -24,18 +16,18 @@ interface CreateColumnModalProps {
 }
 
 export function CreateColumnModal({ open, onOpenChange }: CreateColumnModalProps) {
-  const [title, setTitle] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
   const { createColumn, currentGroup } = useTask()
   const { toast } = useToast()
+  const [title, setTitle] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!title.trim()) {
       toast({
-        title: "Título obrigatório",
-        description: "Por favor, informe o título da coluna.",
+        title: "Erro",
+        description: "O título da coluna é obrigatório.",
         variant: "destructive",
       })
       return
@@ -50,13 +42,14 @@ export function CreateColumnModal({ open, onOpenChange }: CreateColumnModalProps
       return
     }
 
+    setIsLoading(true)
+
     try {
-      setIsLoading(true)
       await createColumn(title.trim())
 
       toast({
-        title: "Coluna criada!",
-        description: `A coluna "${title}" foi criada com sucesso.`,
+        title: "Coluna criada",
+        description: "A coluna foi criada com sucesso.",
       })
 
       setTitle("")
@@ -64,8 +57,8 @@ export function CreateColumnModal({ open, onOpenChange }: CreateColumnModalProps
     } catch (error) {
       console.error("Erro ao criar coluna:", error)
       toast({
-        title: "Erro ao criar coluna",
-        description: "Tente novamente mais tarde.",
+        title: "Erro",
+        description: "Não foi possível criar a coluna. Tente novamente.",
         variant: "destructive",
       })
     } finally {
@@ -75,30 +68,25 @@ export function CreateColumnModal({ open, onOpenChange }: CreateColumnModalProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] mx-4">
+      <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle>Criar Nova Coluna</DialogTitle>
-          <DialogDescription>
-            Adicione uma nova coluna ao quadro Kanban do grupo "{currentGroup?.name}".
-          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="title">Título da Coluna *</Label>
-              <Input
-                id="title"
-                placeholder="Ex: A Fazer, Em Progresso, Concluído..."
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Título da Coluna</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Ex: A Fazer, Em Progresso, Concluído"
+              disabled={isLoading}
+              required
+            />
           </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 pt-4">
             <Button
               type="button"
               variant="outline"
@@ -109,16 +97,9 @@ export function CreateColumnModal({ open, onOpenChange }: CreateColumnModalProps
               Cancelar
             </Button>
             <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Criando...
-                </>
-              ) : (
-                "Criar Coluna"
-              )}
+              {isLoading ? "Criando..." : "Criar Coluna"}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

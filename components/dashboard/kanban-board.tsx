@@ -1,106 +1,158 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
-import { DragDropContext, type DropResult } from "@hello-pangea/dnd"
-import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
 import { useTask } from "@/contexts/task-context"
-import { DraggableColumn } from "./draggable-column"
-import { CreateColumnModal } from "@/components/modals/create-column-modal"
+import { Button } from "@/components/ui/button"
 import { CreateTaskModal } from "@/components/modals/create-task-modal"
+import { CreateColumnModal } from "@/components/modals/create-column-modal"
+import { Plus } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { DraggableColumn } from "@/components/dashboard/draggable-column"
 
 export function KanbanBoard() {
-  const { columns, tasks, currentGroup, moveTask } = useTask()
-  const [showCreateColumn, setShowCreateColumn] = useState(false)
+  const { currentGroup, columns, tasks, moveTask } = useTask()
   const [showCreateTask, setShowCreateTask] = useState(false)
+  const [showCreateColumn, setShowCreateColumn] = useState(false)
   const [selectedColumnId, setSelectedColumnId] = useState<string>("")
+  const { toast } = useToast()
 
-  const handleDragEnd = async (result: DropResult) => {
-    const { destination, source, draggableId } = result
+  console.log("🎯 KanbanBoard renderizado:")
+  console.log("📊 Grupo atual:", currentGroup?.name)
+  console.log(
+    "📋 Colunas:",
+    columns.length,
+    columns.map((c) => ({ id: c.id, title: c.title, group_id: c.group_id })),
+  )
+  console.log("📝 Tarefas:", tasks.length)
 
-    if (!destination) return
-
-    // Se não houve mudança de posição
-    if (destination.droppableId === source.droppableId && destination.index === source.index) {
-      return
-    }
-
-    // Mover tarefa entre colunas
-    if (destination.droppableId !== source.droppableId) {
-      try {
-        await moveTask(draggableId, destination.droppableId)
-      } catch (error) {
-        console.error("Erro ao mover tarefa:", error)
-      }
-    }
+  if (!currentGroup) {
+    console.log("❌ Nenhum grupo selecionado no KanbanBoard")
+    return (
+      <div className="h-full flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Nenhum grupo selecionado</h2>
+          <p className="text-gray-600">Selecione um grupo na barra lateral para começar</p>
+        </div>
+      </div>
+    )
   }
+
+  // Filtrar colunas usando group_id (campo do banco)
+  const groupColumns = columns
+    .filter((col) => col.group_id === currentGroup.id)
+    .sort((a, b) => a.order_index - b.order_index)
+
+  console.log("🔍 Filtro aplicado:")
+  console.log("🎯 ID do grupo atual:", currentGroup.id)
+  console.log("📋 Colunas filtradas:", groupColumns.length)
 
   const handleCreateTask = (columnId: string) => {
     setSelectedColumnId(columnId)
     setShowCreateTask(true)
   }
 
-  if (!currentGroup) {
-    return null
+  const handleTaskDragStart = (e: React.DragEvent, taskId: string) => {
+    console.log("🎯 Iniciando drag da tarefa:", taskId)
+    e.dataTransfer.setData("text/plain", taskId)
+    e.dataTransfer.effectAllowed = "move"
+  }
+
+  const handleTaskDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = "move"
+  }
+
+  const handleTaskDrop = async (e: React.DragEvent, columnId: string) => {
+    e.preventDefault()
+
+    const taskId = e.dataTransfer.getData("text/plain")
+    if (taskId && taskId !== "undefined") {
+      console.log("🔄 Movendo tarefa:", taskId, "para coluna:", columnId)
+
+      try {
+        await moveTask(taskId, columnId)
+        toast({
+          title: "Tarefa movida",
+          description: "A tarefa foi movida com sucesso.",
+        })
+      } catch (error) {
+        console.error("❌ Erro ao mover tarefa:", error)
+        toast({
+          title: "Erro",
+          description: "Não foi possível mover a tarefa.",
+          variant: "destructive",
+        })
+      }
+    }
   }
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b bg-background">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-semibold truncate">{currentGroup.name}</h1>
-          {currentGroup.description && (
-            <p className="text-sm text-muted-foreground truncate mt-1">{currentGroup.description}</p>
-          )}
+    <>
+      <div className="h-full flex flex-col">
+        {/* Header */}
+        <div className="p-4 sm:p-6 border-b border-gray-200 bg-white">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">{currentGroup.name}</h1>
+              {currentGroup.description && (
+                <p className="text-gray-600 text-sm sm:text-base mt-1">{currentGroup.description}</p>
+              )}
+            </div>
+            <Button onClick={() => setShowCreateColumn(true)} className="w-full sm:w-auto">
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Coluna
+            </Button>
+          </div>
         </div>
-        <Button onClick={() => setShowCreateColumn(true)} className="flex-shrink-0 ml-4">
-          <Plus className="mr-2 h-4 w-4" />
-          <span className="hidden sm:inline">Nova Coluna</span>
-          <span className="sm:hidden">Coluna</span>
-        </Button>
-      </div>
 
-      {/* Kanban Board */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden">
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="flex gap-4 p-4 h-full min-w-max">
-            {columns.map((column) => (
-              <DraggableColumn
-                key={column.id}
-                column={column}
-                tasks={tasks.filter((task) => task.column_id === column.id)}
-                onCreateTask={() => handleCreateTask(column.id)}
-              />
-            ))}
+        {/* Kanban Board */}
+        <div className="flex-1 overflow-auto">
+          <div className="p-4 sm:p-6 h-full">
+            {groupColumns.length > 0 ? (
+              <div className="flex gap-4 sm:gap-6 h-full min-w-max pb-4">
+                {groupColumns.map((column) => {
+                  const columnTasks = tasks.filter((task) => task.column_id === column.id)
+                  console.log(`📋 Coluna ${column.title}: ${columnTasks.length} tarefas`)
 
-            {/* Empty state quando não há colunas */}
-            {columns.length === 0 && (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center">
-                  <h3 className="text-lg font-medium text-muted-foreground mb-2">Nenhuma coluna criada</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  return (
+                    <DraggableColumn
+                      key={column.id}
+                      column={column}
+                      tasks={columnTasks}
+                      onTaskDragStart={handleTaskDragStart}
+                      onTaskDragOver={handleTaskDragOver}
+                      onTaskDrop={handleTaskDrop}
+                      onCreateTask={handleCreateTask}
+                    />
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center max-w-md px-4">
+                  <div className="bg-gray-100 rounded-full p-6 w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 flex items-center justify-center">
+                    <Plus className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma coluna ainda</h3>
+                  <p className="text-gray-500 mb-4 text-sm sm:text-base">
                     Crie sua primeira coluna para começar a organizar as tarefas
                   </p>
-                  <Button onClick={() => setShowCreateColumn(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Criar Primeira Coluna
+                  <Button onClick={() => setShowCreateColumn(true)} className="w-full sm:w-auto">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Criar primeira coluna
                   </Button>
                 </div>
               </div>
             )}
           </div>
-        </DragDropContext>
+        </div>
       </div>
 
-      {/* Modais */}
+      <CreateTaskModal open={showCreateTask} onOpenChange={setShowCreateTask} columnId={selectedColumnId} />
+
       <CreateColumnModal open={showCreateColumn} onOpenChange={setShowCreateColumn} />
-      <CreateTaskModal
-        open={showCreateTask}
-        onOpenChange={setShowCreateTask}
-        columnId={selectedColumnId}
-        groupId={currentGroup.id}
-      />
-    </div>
+    </>
   )
 }

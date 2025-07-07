@@ -3,80 +3,97 @@
 import type React from "react"
 
 import { useState } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTask } from "@/contexts/task-context"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2 } from "lucide-react"
 
 interface CreateTaskModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   columnId: string
-  groupId: string
 }
 
-export function CreateTaskModal({ open, onOpenChange, columnId, groupId }: CreateTaskModalProps) {
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [priority, setPriority] = useState<"baixa" | "media" | "alta">("media")
-  const [deadline, setDeadline] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const { createTask, columns } = useTask()
+export function CreateTaskModal({ open, onOpenChange, columnId }: CreateTaskModalProps) {
+  const { createTask, currentGroup } = useTask()
   const { toast } = useToast()
-
-  const column = columns.find((c) => c.id === columnId)
+  const [isLoading, setIsLoading] = useState(false)
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    meta: "",
+    priority: "media" as "baixa" | "media" | "alta",
+    deadline: "",
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!title.trim()) {
+    if (!formData.title.trim()) {
       toast({
-        title: "Título obrigatório",
-        description: "Por favor, informe o título da tarefa.",
+        title: "Erro",
+        description: "O título da tarefa é obrigatório.",
         variant: "destructive",
       })
       return
     }
 
+    if (!formData.deadline) {
+      toast({
+        title: "Erro",
+        description: "A data limite é obrigatória.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!currentGroup) {
+      toast({
+        title: "Erro",
+        description: "Nenhum grupo selecionado.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsLoading(true)
+
     try {
-      setIsLoading(true)
       await createTask({
-        title: title.trim(),
-        description: description.trim() || null,
-        priority,
-        deadline: deadline || null,
+        title: formData.title.trim(),
+        description: formData.description.trim() || null,
+        meta: formData.meta.trim() || null,
+        priority: formData.priority,
+        deadline: formData.deadline,
         column_id: columnId,
-        group_id: groupId,
-        meta: null,
+        group_id: currentGroup.id,
+        assigned_to: null,
       })
 
       toast({
-        title: "Tarefa criada!",
-        description: `A tarefa "${title}" foi criada com sucesso.`,
+        title: "Tarefa criada",
+        description: "A tarefa foi criada com sucesso.",
       })
 
-      setTitle("")
-      setDescription("")
-      setPriority("media")
-      setDeadline("")
+      // Reset form
+      setFormData({
+        title: "",
+        description: "",
+        meta: "",
+        priority: "media",
+        deadline: "",
+      })
+
       onOpenChange(false)
     } catch (error) {
       console.error("Erro ao criar tarefa:", error)
       toast({
-        title: "Erro ao criar tarefa",
-        description: "Tente novamente mais tarde.",
+        title: "Erro",
+        description: "Não foi possível criar a tarefa. Tente novamente.",
         variant: "destructive",
       })
     } finally {
@@ -84,73 +101,86 @@ export function CreateTaskModal({ open, onOpenChange, columnId, groupId }: Creat
     }
   }
 
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] mx-4">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Criar Nova Tarefa</DialogTitle>
-          <DialogDescription>Adicione uma nova tarefa na coluna "{column?.title}".</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="title">Título da Tarefa *</Label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Título *</Label>
+            <Input
+              id="title"
+              value={formData.title}
+              onChange={(e) => handleInputChange("title", e.target.value)}
+              placeholder="Digite o título da tarefa"
+              disabled={isLoading}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Descrição</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => handleInputChange("description", e.target.value)}
+              placeholder="Descreva a tarefa (opcional)"
+              disabled={isLoading}
+              rows={3}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="meta">Meta/Objetivo</Label>
+            <Input
+              id="meta"
+              value={formData.meta}
+              onChange={(e) => handleInputChange("meta", e.target.value)}
+              placeholder="Qual é o objetivo desta tarefa? (opcional)"
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="priority">Prioridade</Label>
+              <Select
+                value={formData.priority}
+                onValueChange={(value: "baixa" | "media" | "alta") => handleInputChange("priority", value)}
+                disabled={isLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="baixa">🟢 Baixa</SelectItem>
+                  <SelectItem value="media">🟡 Média</SelectItem>
+                  <SelectItem value="alta">🔴 Alta</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="deadline">Data Limite *</Label>
               <Input
-                id="title"
-                placeholder="Digite o título da tarefa..."
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                id="deadline"
+                type="date"
+                value={formData.deadline}
+                onChange={(e) => handleInputChange("deadline", e.target.value)}
+                disabled={isLoading}
                 required
-                disabled={isLoading}
               />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="description">Descrição</Label>
-              <Textarea
-                id="description"
-                placeholder="Descreva os detalhes da tarefa..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="priority">Prioridade</Label>
-                <Select
-                  value={priority}
-                  onValueChange={(value: "baixa" | "media" | "alta") => setPriority(value)}
-                  disabled={isLoading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a prioridade" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="baixa">🟢 Baixa</SelectItem>
-                    <SelectItem value="media">🟡 Média</SelectItem>
-                    <SelectItem value="alta">🔴 Alta</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="deadline">Prazo</Label>
-                <Input
-                  id="deadline"
-                  type="date"
-                  value={deadline}
-                  onChange={(e) => setDeadline(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
             </div>
           </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 pt-4">
             <Button
               type="button"
               variant="outline"
@@ -161,16 +191,9 @@ export function CreateTaskModal({ open, onOpenChange, columnId, groupId }: Creat
               Cancelar
             </Button>
             <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Criando...
-                </>
-              ) : (
-                "Criar Tarefa"
-              )}
+              {isLoading ? "Criando..." : "Criar Tarefa"}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

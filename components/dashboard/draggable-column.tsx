@@ -16,9 +16,9 @@ import { EditColumnModal } from "@/components/modals/edit-column-modal"
 interface DraggableColumnProps {
   column: Column
   tasks: Task[]
-  onTaskDragStart?: (e: React.DragEvent, taskId: string) => void
-  onTaskDragOver?: (e: React.DragEvent) => void
-  onTaskDrop?: (e: React.DragEvent, columnId: string) => void
+  onTaskDragStart: (e: React.DragEvent, taskId: string) => void
+  onTaskDragOver: (e: React.DragEvent) => void
+  onTaskDrop: (e: React.DragEvent, columnId: string) => void
   onCreateTask: (columnId: string) => void
 }
 
@@ -34,11 +34,7 @@ export function DraggableColumn({
   const { toast } = useToast()
   const [showCreateTask, setShowCreateTask] = useState(false)
   const [showEditColumn, setShowEditColumn] = useState(false)
-
-  const noop = () => {}
-  const handleDragStart = onTaskDragStart ?? noop
-  const handleDragOver = onTaskDragOver ?? noop
-  const handleDrop = onTaskDrop ?? noop
+  const [isDragOver, setIsDragOver] = useState(false)
 
   const handleDeleteColumn = () => {
     if (confirm(`Tem certeza que deseja excluir a coluna "${column.title}"?`)) {
@@ -58,9 +54,30 @@ export function DraggableColumn({
     setShowEditColumn(true)
   }
 
+  const handleDragOver = (e: React.DragEvent) => {
+    onTaskDragOver(e)
+    setIsDragOver(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Só remove o highlight se realmente saiu da área da coluna
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    onTaskDrop(e, column.id)
+    setIsDragOver(false)
+  }
+
   return (
     <>
-      <Card className="w-72 sm:w-80 flex-shrink-0 bg-gray-50 h-fit max-h-full flex flex-col">
+      <Card
+        className={`w-72 sm:w-80 flex-shrink-0 bg-gray-50 h-fit max-h-full flex flex-col transition-colors ${
+          isDragOver ? "bg-blue-50 border-blue-300" : ""
+        }`}
+      >
         <CardHeader className="pb-3 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -93,12 +110,15 @@ export function DraggableColumn({
           </div>
         </CardHeader>
         <CardContent
-          className="space-y-3 min-h-[200px] flex-1 overflow-y-auto"
+          className={`space-y-3 min-h-[200px] flex-1 overflow-y-auto transition-colors ${
+            isDragOver ? "bg-blue-25" : ""
+          }`}
           onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, column.id)}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
         >
           {tasks.map((task) => (
-            <EnhancedTaskCard key={task.id} task={task} onDragStart={(e) => handleDragStart(e, task.id)} />
+            <EnhancedTaskCard key={task.id} task={task} onDragStart={(e) => onTaskDragStart(e, task.id)} />
           ))}
           {tasks.length === 0 && (
             <div className="text-center py-6 sm:py-8 text-gray-500">

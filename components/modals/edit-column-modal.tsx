@@ -3,15 +3,8 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useTask } from "@/contexts/task-context"
@@ -24,16 +17,16 @@ interface EditColumnModalProps {
 }
 
 export function EditColumnModal({ open, onOpenChange, columnId }: EditColumnModalProps) {
-  const [title, setTitle] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
   const { columns, updateColumn } = useTask()
   const { toast } = useToast()
+  const [title, setTitle] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
   const column = columns.find((c) => c.id === columnId)
 
   useEffect(() => {
     if (column && open) {
-      setTitle(column.title)
+      setTitle(column.title || "")
     }
   }, [column, open])
 
@@ -72,20 +65,13 @@ export function EditColumnModal({ open, onOpenChange, columnId }: EditColumnModa
     }
   }
 
-  const handleClose = () => {
-    if (!isLoading) {
-      onOpenChange(false)
-    }
-  }
-
   if (!column) return null
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px] mx-4">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle>Editar Coluna</DialogTitle>
-          <DialogDescription>Modifique o título da coluna.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -95,26 +81,26 @@ export function EditColumnModal({ open, onOpenChange, columnId }: EditColumnModa
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Digite o novo título"
+              placeholder="Ex: A Fazer, Em Progresso, Concluído"
               disabled={isLoading}
               required
             />
           </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 pt-4">
             <Button
               type="button"
               variant="outline"
-              onClick={handleClose}
+              onClick={() => onOpenChange(false)}
               disabled={isLoading}
-              className="w-full sm:w-auto bg-transparent"
+              className="w-full sm:w-auto"
             >
               Cancelar
             </Button>
             <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
               {isLoading ? "Salvando..." : "Salvar Alterações"}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

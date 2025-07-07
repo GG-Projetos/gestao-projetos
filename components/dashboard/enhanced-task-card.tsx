@@ -20,6 +20,7 @@ interface EnhancedTaskCardProps {
 
 export function EnhancedTaskCard({ task, onDragStart }: EnhancedTaskCardProps) {
   const [showEditTask, setShowEditTask] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
   const { deleteTask } = useTask()
   const { toast } = useToast()
 
@@ -35,6 +36,17 @@ export function EnhancedTaskCard({ task, onDragStart }: EnhancedTaskCardProps) {
 
   const handleEditTask = () => {
     setShowEditTask(true)
+  }
+
+  const handleDragStart = (e: React.DragEvent) => {
+    setIsDragging(true)
+    if (onDragStart) {
+      onDragStart(e)
+    }
+  }
+
+  const handleDragEnd = () => {
+    setIsDragging(false)
   }
 
   const getPriorityColor = (priority: string) => {
@@ -77,9 +89,12 @@ export function EnhancedTaskCard({ task, onDragStart }: EnhancedTaskCardProps) {
   return (
     <>
       <Card
-        className="cursor-move hover:shadow-md transition-shadow bg-white border border-gray-200 group touch-manipulation"
+        className={`cursor-move hover:shadow-md transition-all bg-white border border-gray-200 group touch-manipulation ${
+          isDragging ? "opacity-50 rotate-2 scale-105" : ""
+        }`}
         draggable
-        onDragStart={onDragStart}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
       >
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
