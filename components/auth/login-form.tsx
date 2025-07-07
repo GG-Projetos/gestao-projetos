@@ -19,6 +19,7 @@ export function LoginForm() {
   const [success, setSuccess] = useState("")
 
   // Estados para login
+  const [loginName, setLoginNome] = useState("")
   const [loginEmail, setLoginEmail] = useState("")
   const [loginPassword, setLoginPassword] = useState("")
 
@@ -39,6 +40,10 @@ export function LoginForm() {
     setSuccess("")
 
     // Validações
+    if (!loginNome.trim()) {
+      setError("Nome é obrigatório")
+      return
+    }
     if (!loginEmail.trim()) {
       setError("Email é obrigatório")
       return
@@ -168,6 +173,23 @@ export function LoginForm() {
             {/* Tab de Login */}
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="login-name">Nome</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="login-nome"
+                      type="nome"
+                      placeholder="Nome completo"
+                      value={loginNome}
+                      onChange={(e) => setLoginNome(e.target.value)}
+                      disabled={isLoading}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="login-email">Email</Label>
                   <div className="relative">
