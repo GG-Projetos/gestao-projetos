@@ -90,8 +90,8 @@ export function LoginForm() {
     setSuccess("")
 
     // Validações
-    if (!registerEmail.trim()) {
-      setError("Email é obrigatório")
+    if (!registerNome.trim()) {
+      setError("Nome é obrigatório")
       return
     }
 
@@ -124,7 +124,7 @@ export function LoginForm() {
 
     try {
       console.log("🔄 Iniciando registro...")
-      const result = await register(registerEmail, registerPassword)
+      const result = await register(registerNome,registerEmail, registerPassword)
 
       if (result.success) {
         console.log("✅ Registro bem-sucedido")
