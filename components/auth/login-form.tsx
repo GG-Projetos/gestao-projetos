@@ -19,11 +19,11 @@ export function LoginForm() {
   const [success, setSuccess] = useState("")
 
   // Estados para login
-  const [loginNome, setLoginNome] = useState("")
   const [loginEmail, setLoginEmail] = useState("")
   const [loginPassword, setLoginPassword] = useState("")
 
   // Estados para registro
+  const [registerNome, setRegisterNome] = useState("")
   const [registerEmail, setRegisterEmail] = useState("")
   const [registerPassword, setRegisterPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -69,6 +69,7 @@ export function LoginForm() {
         console.log("✅ Login bem-sucedido")
         setSuccess("Login realizado com sucesso!")
         // Limpar formulário
+        setLoginNome("")
         setLoginEmail("")
         setLoginPassword("")
       } else {
@@ -89,6 +90,11 @@ export function LoginForm() {
     setSuccess("")
 
     // Validações
+    if (!registerEmail.trim()) {
+      setError("Email é obrigatório")
+      return
+    }
+
     if (!registerEmail.trim()) {
       setError("Email é obrigatório")
       return
@@ -124,6 +130,7 @@ export function LoginForm() {
         console.log("✅ Registro bem-sucedido")
         setSuccess("Conta criada com sucesso!")
         // Limpar formulário
+        setRegisterNome("")
         setRegisterEmail("")
         setRegisterPassword("")
         setConfirmPassword("")
@@ -226,15 +233,15 @@ export function LoginForm() {
               <form onSubmit={handleRegister} className="space-y-4">
 
               <div className="space-y-2">
-                  <Label htmlFor="login-name">Nome</Label>
+                  <Label htmlFor="register-name">Nome</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
-                      id="login-nome"
+                      id="register-nome"
                       type="nome"
                       placeholder="Nome completo"
-                      value={loginNome}
-                      onChange={(e) => setLoginNome(e.target.value)}
+                      value={registerNome}
+                      onChange={(e) => setRegisterNome(e.target.value)}
                       disabled={isLoading}
                       className="pl-10"
                       required
