@@ -37,12 +37,11 @@ interface SidebarProps {
 
 export function Sidebar({ onClose }: SidebarProps) {
   const { user, logout } = useAuth()
-  const { groups, currentGroup, setCurrentGroup, deleteGroup } = useTask()
+  const { groups, currentGroup, setCurrentGroup, deleteGroup,groupMemberCounts} = useTask()
   const [showCreateGroup, setShowCreateGroup] = useState(false)
   const [editingGroup, setEditingGroup] = useState<string | null>(null)
   const [deletingGroup, setDeletingGroup] = useState<{ id: string; name: string } | null>(null)
 
-  console.log(groups);
   
   const handleLogout = async () => {
     try {
@@ -168,7 +167,8 @@ export function Sidebar({ onClose }: SidebarProps) {
                           </div>
                           <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                             <Badge variant="secondary" className="text-xs">
-                              <Users className="mr-1 h-3 w-3" />  
+                              <Users className="mr-1 h-3 w-3" />
+                              {groupMemberCounts[group.id] ?? 0}
                             </Badge>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>

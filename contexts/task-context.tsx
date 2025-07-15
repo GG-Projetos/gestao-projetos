@@ -24,6 +24,7 @@ interface TaskContextType {
   updateTask: (taskId: string, updates: Partial<Task>) => Promise<void>
   deleteTask: (taskId: string) => Promise<void>
   moveTask: (taskId: string, newColumnId: string) => Promise<void>
+  groupMemberCounts: Record<string, number>
 }
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined)
@@ -31,6 +32,7 @@ const TaskContext = createContext<TaskContextType | undefined>(undefined)
 export function TaskProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
   const [groups, setGroups] = useState<Group[]>([])
+  const [groupMemberCounts, setGroupMemberCounts] = useState<Record<string, number>>({})
   const [columns, setColumns] = useState<Column[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [currentGroup, setCurrentGroup] = useState<Group | null>(null)
@@ -66,7 +68,6 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
     try {
 
-      // Primeiro, buscar os IDs dos grupos que o usuário participa
       const { data: memberData, error: memberError } = await supabase
         .from("group_members")
         .select("group_id")
@@ -77,7 +78,6 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       }
 
 
-      // Se não há memberships, retorna array vazio
       if (!memberData || memberData.length === 0) {
         setGroups([])
         return
@@ -98,72 +98,101 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       }
 
       setGroups(groupsData || [])
+      await fetchGroupMemberCounts(groupIds)
     } catch (error) {
       setGroups([])
     }
   }
 
   const fetchGroupData = async (groupId: string) => {
-    try {
-      setIsLoading(true)
+  try {
+    setIsLoading(true)
 
-      // Buscar colunas
-      const { data: columnsData, error: columnsError } = await supabase
-        .from("columns")
-        .select("*")
-        .eq("group_id", groupId)
-        .order("order_index", { ascending: true })
+    // Buscar colunas
+    const { data: columnsData, error: columnsError } = await supabase
+      .from("columns")
+      .select("*")
+      .eq("group_id", groupId)
+      .order("order_index", { ascending: true })
 
-      if (columnsError) {
-        throw columnsError
+    if (columnsError) {
+      throw columnsError
+    }
+
+    const columnsWithAliases = (columnsData || []).map((col) => ({
+      ...col,
+      groupId: col.group_id,
+      order: col.order_index,
+    }))
+
+    // Buscar tarefas
+    const { data: tasksData, error: tasksError } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("group_id", groupId)
+      .order("created_at", { ascending: false })
+
+    if (tasksError) {
+      throw tasksError
+    }
+
+    const tasksWithAliases = (tasksData || []).map((task) => ({
+      ...task,
+      columnId: task.column_id,
+      groupId: task.group_id,
+    }))
+
+    // Atualizar estados
+    setColumns(columnsWithAliases)
+    setTasks(tasksWithAliases)
+
+    // Atualizar contagem de membros do grupo atual
+    await fetchGroupMemberCounts([groupId]) // 👈 aqui está o ajuste correto
+
+  } catch (error) {
+    setColumns([])
+    setTasks([])
+  } finally {
+    setIsLoading(false)
+  }
+}
+
+
+  const fetchGroupMemberCounts = async (groupIds: string[]) => {
+  try {
+      const memberCounts: Record<string, number> = {}
+
+      for (const groupId of groupIds) {
+
+        const { count, error } = await supabase
+          .from("group_members")
+          .select("*", { count: "exact", head: true })
+          .eq("group_id", groupId)
+
+          console.log(count);
+          
+
+        if (!error && count !== null) {
+          memberCounts[groupId] = count
+        } else {
+          memberCounts[groupId] = 0
+        }
       }
 
-
-      // Adicionar aliases para compatibilidade
-      const columnsWithAliases = (columnsData || []).map((col) => ({
-        ...col,
-        groupId: col.group_id,
-        order: col.order_index,
-      }))
-
-
-      // Buscar tarefas
-      const { data: tasksData, error: tasksError } = await supabase
-        .from("tasks")
-        .select("*")
-        .eq("group_id", groupId)
-        .order("created_at", { ascending: false })
-
-      if (tasksError) {
-        throw tasksError
-      }
-
-
-      // Adicionar aliases para compatibilidade
-      const tasksWithAliases = (tasksData || []).map((task) => ({
-        ...task,
-        columnId: task.column_id,
-        groupId: task.group_id,
-      }))
-
-      // Atualizar estados
-      setColumns(columnsWithAliases)
-      setTasks(tasksWithAliases)
-
+      setGroupMemberCounts((prev) => ({ ...prev, ...memberCounts }))
     } catch (error) {
-      setColumns([])
-      setTasks([])
-    } finally {
-      setIsLoading(false)
+      console.error("Erro ao buscar contagem de membros:", error)
     }
   }
+
+
+
+  
 
   const createGroup = async (name: string, description: string) => {
     if (!user) {
       throw new Error("Usuário não autenticado")
     }
-
-   
 
     try {
       // Verificar se o usuário está realmente autenticado
@@ -549,6 +578,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         updateTask,
         deleteTask,
         moveTask,
+        groupMemberCounts
       }}
     >
       {children}
