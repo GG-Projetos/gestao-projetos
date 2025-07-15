@@ -26,13 +26,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Verificar sessão inicial
-    console.log("🔍 Verificando sessão inicial...")
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        console.log("✅ Sessão encontrada para:", session.user.email)
         setUser(session.user)
       } else {
-        console.log("❌ Nenhuma sessão encontrada")
       }
       setIsLoading(false)
     })
@@ -41,12 +38,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("🔄 Auth state changed:", event)
       if (session?.user) {
-        console.log("✅ Usuário logado:", session.user.email)
         setUser(session.user)
       } else {
-        console.log("❌ Usuário deslogado")
         setUser(null)
       }
       setIsLoading(false)
@@ -62,12 +56,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string): Promise<AuthResult> => {
     try {
-      console.log("🔄 Tentando fazer login com:", email)
 
       // Validar email
       const normalizedEmail = email.trim().toLowerCase()
       if (!validateEmail(normalizedEmail)) {
-        console.error("❌ Email inválido:", normalizedEmail)
         return { success: false, error: "Formato de email inválido" }
       }
 
@@ -77,30 +69,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
 
       if (error) {
-        console.error("❌ Erro no login:", error)
         return { success: false, error: error.message }
       }
 
       if (data.user) {
-        console.log("✅ Login realizado com sucesso:", data.user.email)
         return { success: true }
       }
 
       return { success: false, error: "Erro desconhecido no login" }
     } catch (error) {
-      console.error("❌ Erro inesperado no login:", error)
       return { success: false, error: "Erro inesperado. Tente novamente." }
     }
   }
 
   const register = async (email: string, password: string, name: string): Promise<AuthResult> => {
     try {
-      console.log("🔄 Tentando registrar usuário:", email)
 
       // Validar email
       const normalizedEmail = email.trim().toLowerCase()
       if (!validateEmail(normalizedEmail)) {
-        console.error("❌ Email inválido:", normalizedEmail)
         return { success: false, error: "Formato de email inválido" }
       }
 
@@ -125,33 +112,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
 
       if (error) {
-        console.error("❌ Erro no registro:", error)
         return { success: false, error: error.message }
       }
 
       if (data.user) {
-        console.log("✅ Registro realizado com sucesso:", data.user.email)
         return { success: true }
       }
 
       return { success: false, error: "Erro desconhecido no registro" }
     } catch (error) {
-      console.error("❌ Erro inesperado no registro:", error)
       return { success: false, error: "Erro inesperado. Tente novamente." }
     }
   }
 
   const logout = async () => {
     try {
-      console.log("🔄 Fazendo logout...")
       const { error } = await supabase.auth.signOut()
       if (error) {
-        console.error("❌ Erro no logout:", error)
         throw error
       }
-      console.log("✅ Logout realizado com sucesso")
     } catch (error) {
-      console.error("❌ Erro no logout:", error)
       throw error
     }
   }

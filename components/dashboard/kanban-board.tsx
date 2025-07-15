@@ -18,17 +18,8 @@ export function KanbanBoard() {
   const [selectedColumnId, setSelectedColumnId] = useState<string>("")
   const { toast } = useToast()
 
-  console.log("🎯 KanbanBoard renderizado:")
-  console.log("📊 Grupo atual:", currentGroup?.name)
-  console.log(
-    "📋 Colunas:",
-    columns.length,
-    columns.map((c) => ({ id: c.id, title: c.title, group_id: c.group_id })),
-  )
-  console.log("📝 Tarefas:", tasks.length)
 
   if (!currentGroup) {
-    console.log("❌ Nenhum grupo selecionado no KanbanBoard")
     return (
       <div className="h-full flex items-center justify-center p-4">
         <div className="text-center max-w-md">
@@ -44,9 +35,6 @@ export function KanbanBoard() {
     .filter((col) => col.group_id === currentGroup.id)
     .sort((a, b) => a.order_index - b.order_index)
 
-  console.log("🔍 Filtro aplicado:")
-  console.log("🎯 ID do grupo atual:", currentGroup.id)
-  console.log("📋 Colunas filtradas:", groupColumns.length)
 
   const handleCreateTask = (columnId: string) => {
     setSelectedColumnId(columnId)
@@ -54,7 +42,6 @@ export function KanbanBoard() {
   }
 
   const handleTaskDragStart = (e: React.DragEvent, taskId: string) => {
-    console.log("🎯 Iniciando drag da tarefa:", taskId)
     e.dataTransfer.setData("text/plain", taskId)
     e.dataTransfer.effectAllowed = "move"
   }
@@ -69,7 +56,6 @@ export function KanbanBoard() {
 
     const taskId = e.dataTransfer.getData("text/plain")
     if (taskId && taskId !== "undefined") {
-      console.log("🔄 Movendo tarefa:", taskId, "para coluna:", columnId)
 
       try {
         await moveTask(taskId, columnId)
@@ -114,7 +100,6 @@ export function KanbanBoard() {
               <div className="flex gap-4 sm:gap-6 h-full min-w-max pb-4">
                 {groupColumns.map((column) => {
                   const columnTasks = tasks.filter((task) => task.column_id === column.id)
-                  console.log(`📋 Coluna ${column.title}: ${columnTasks.length} tarefas`)
 
                   return (
                     <DraggableColumn

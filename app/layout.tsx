@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Sistema de Gestão de Tarefas",
-  description: "Gestão colaborativa de tarefas estilo Trello",
+  description: "Gestão colaborativa de tarefas",
     generator: 'v0.dev'
 }
 

@@ -42,11 +42,12 @@ export function Sidebar({ onClose }: SidebarProps) {
   const [editingGroup, setEditingGroup] = useState<string | null>(null)
   const [deletingGroup, setDeletingGroup] = useState<{ id: string; name: string } | null>(null)
 
+  console.log(groups);
+  
   const handleLogout = async () => {
     try {
       await logout()
     } catch (error) {
-      console.error("Erro ao fazer logout:", error)
     }
   }
 
@@ -54,12 +55,9 @@ export function Sidebar({ onClose }: SidebarProps) {
     if (!deletingGroup) return
 
     try {
-      console.log("🗑️ Excluindo grupo:", deletingGroup.name)
       await deleteGroup(deletingGroup.id)
       setDeletingGroup(null)
-      console.log("✅ Grupo excluído com sucesso")
     } catch (error) {
-      console.error("❌ Erro ao excluir grupo:", error)
     }
   }
 
@@ -170,7 +168,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                           </div>
                           <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                             <Badge variant="secondary" className="text-xs">
-                              <Users className="mr-1 h-3 w-3" />1
+                              <Users className="mr-1 h-3 w-3" />  
                             </Badge>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>

@@ -59,21 +59,17 @@ export function LoginForm() {
     setIsLoading(true)
 
     try {
-      console.log("🔄 Iniciando login...")
       const result = await login(loginEmail, loginPassword)
 
       if (result.success) {
-        console.log("✅ Login bem-sucedido")
         setSuccess("Login realizado com sucesso!")
         // Limpar formulário
         setLoginEmail("")
         setLoginPassword("")
       } else {
-        console.error("❌ Erro no login:", result.error)
         setError(result.error || "Erro no login")
       }
     } catch (error) {
-      console.error("❌ Erro inesperado no login:", error)
       setError("Erro inesperado. Tente novamente.")
     } finally {
       setIsLoading(false)
@@ -119,11 +115,9 @@ export function LoginForm() {
     setIsLoading(true)
 
     try {
-      console.log("🔄 Iniciando registro...")
       const result = await register(registerEmail, registerPassword,registerNome)
 
       if (result.success) {
-        console.log("✅ Registro bem-sucedido")
         setSuccess("Conta criada com sucesso!")
         // Limpar formulário
         setRegisterNome("")
@@ -131,11 +125,9 @@ export function LoginForm() {
         setRegisterPassword("")
         setConfirmPassword("")
       } else {
-        console.error("❌ Erro no registro:", result.error)
         setError(result.error || "Erro no registro")
       }
     } catch (error) {
-      console.error("❌ Erro inesperado no registro:", error)
       setError("Erro inesperado. Tente novamente.")
     } finally {
       setIsLoading(false)
