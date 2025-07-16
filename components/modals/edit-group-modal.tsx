@@ -26,7 +26,7 @@ interface EditGroupModalProps {
 
 export function EditGroupModal({ open, onOpenChange, groupId }: EditGroupModalProps) {
   const [name, setName] = useState("")
-  const [description, setDescription] = useState("")
+  const [descricao, setDescription] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const { groups, updateGroup } = useTask()
   const { toast } = useToast()
@@ -54,11 +54,10 @@ export function EditGroupModal({ open, onOpenChange, groupId }: EditGroupModalPr
 
     setIsLoading(true)
 
+    const nome = name.trim()
+    const descri = descricao.trim()
     try {
-      await updateGroup(groupId, {
-        name: name.trim(),
-        description: description.trim(),
-      })
+      await updateGroup(groupId, nome, descri)
 
       toast({
         title: "Grupo atualizado",
@@ -110,8 +109,8 @@ export function EditGroupModal({ open, onOpenChange, groupId }: EditGroupModalPr
           <div className="space-y-2">
             <Label htmlFor="description">Descrição (opcional)</Label>
             <Textarea
-              id="description"
-              value={description}
+              id="descricao"
+              value={descricao}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Descreva o propósito do grupo"
               disabled={isLoading}

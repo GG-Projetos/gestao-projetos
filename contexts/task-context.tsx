@@ -15,6 +15,7 @@ interface TaskContextType {
   updateGroup: (groupId: string, name: string, description: string) => Promise<void>
   joinGroup: (groupId: string) => Promise<void>
   leaveGroup: (groupId: string) => Promise<void>
+  inviteUserToGroup: (userIdToInvite: string,groupId: string) => Promise<void>
   deleteGroup: (groupId: string) => Promise<void>
   setCurrentGroup: (group: Group | null) => void
   createColumn: (title: string) => Promise<void>
@@ -184,10 +185,6 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       console.error("Erro ao buscar contagem de membros:", error)
     }
   }
-
-
-
-  
 
   const createGroup = async (name: string, description: string) => {
     if (!user) {
@@ -362,6 +359,20 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
       if (error) throw error
       await fetchUserGroups()
+    } catch (error) {
+      throw error
+    }
+  }
+
+  const inviteUserToGroup = async (userIdToInvite: string, groupId: string) => {
+    try {
+      const { error } = await supabase.from("group_members").insert({
+        group_id: groupId,
+        user_id: userIdToInvite,
+        role: "member", // ou "guest", se quiser diferenciar
+      })
+
+      if (error) throw error
     } catch (error) {
       throw error
     }
@@ -569,6 +580,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         updateGroup,
         joinGroup,
         leaveGroup,
+        inviteUserToGroup,
         deleteGroup,
         setCurrentGroup,
         createColumn,

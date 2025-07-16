@@ -12,6 +12,7 @@ import { useTask } from "@/contexts/task-context"
 import { useToast } from "@/hooks/use-toast"
 import { EditTaskModal } from "@/components/modals/edit-task-modal"
 import type { Task } from "@/lib/supabase"
+import { ViewTaskModal } from "@/components/modals/ViewTaskModal"
 
 interface EnhancedTaskCardProps {
   task: Task
@@ -21,6 +22,7 @@ interface EnhancedTaskCardProps {
 export function EnhancedTaskCard({ task, onDragStart }: EnhancedTaskCardProps) {
   const [showEditTask, setShowEditTask] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [showViewTask, setShowViewTask] = useState(false)
   const { deleteTask } = useTask()
   const { toast } = useToast()
 
@@ -93,6 +95,7 @@ export function EnhancedTaskCard({ task, onDragStart }: EnhancedTaskCardProps) {
           isDragging ? "opacity-50 rotate-2 scale-105" : ""
         }`}
         draggable
+        onClick={() => setShowViewTask(true)}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
@@ -155,6 +158,16 @@ export function EnhancedTaskCard({ task, onDragStart }: EnhancedTaskCardProps) {
       </Card>
 
       <EditTaskModal open={showEditTask} onOpenChange={setShowEditTask} taskId={task.id} />
+      <ViewTaskModal open={showViewTask} onOpenChange={setShowViewTask}
+        task={{
+          title: task.title,
+          description: task.description || "",
+          deadline: task.deadline,
+          assigned_to: task.assigned_to || "",
+          priority: task.priority,
+          meta: task.meta || ""
+        }}
+/>
     </>
   )
 }

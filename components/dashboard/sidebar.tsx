@@ -37,12 +37,12 @@ interface SidebarProps {
 
 export function Sidebar({ onClose }: SidebarProps) {
   const { user, logout } = useAuth()
-  const { groups, currentGroup, setCurrentGroup, deleteGroup,groupMemberCounts} = useTask()
+  const { groups, currentGroup, setCurrentGroup, deleteGroup,groupMemberCounts,leaveGroup} = useTask()
   const [showCreateGroup, setShowCreateGroup] = useState(false)
   const [editingGroup, setEditingGroup] = useState<string | null>(null)
   const [deletingGroup, setDeletingGroup] = useState<{ id: string; name: string } | null>(null)
+  const [leavingGroup, setLeavingGroup] = useState<{ id: string, name: string} | null>(null)
 
-  
   const handleLogout = async () => {
     try {
       await logout()
@@ -59,6 +59,18 @@ export function Sidebar({ onClose }: SidebarProps) {
     } catch (error) {
     }
   }
+
+  const handleLeaveGroup = async () => {
+    if (!currentGroup) return
+
+    try {
+      await leaveGroup(currentGroup.id)
+
+      setleavingGroup(null)
+    } catch (error) {
+    }
+  }
+
 
   const handleGroupSelect = (group: any) => {
     setCurrentGroup(group)
@@ -192,6 +204,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                                   Editar
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
+
                                 <DropdownMenuItem
                                   onClick={(e) => {
                                     e.stopPropagation()
@@ -202,6 +215,21 @@ export function Sidebar({ onClose }: SidebarProps) {
                                   <Trash2 className="mr-2 h-4 w-4" />
                                   Excluir
                                 </DropdownMenuItem>
+
+                                 {group.created_by !== user?.id && (
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setLeavingGroup({ id: group.id, name: group.name })
+                                      }}
+                                      className="text-red-600"
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Sair do Grupo
+                                    </DropdownMenuItem>
+                                  )}
+
+
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -251,6 +279,23 @@ export function Sidebar({ onClose }: SidebarProps) {
             <AlertDialogCancel className="w-full sm:w-auto">Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteGroup} className="w-full sm:w-auto bg-red-600 hover:bg-red-700">
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!leavingGroup} onOpenChange={() => setLeavingGroup(null)}>
+        <AlertDialogContent className="mx-4 max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair do Grupo</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja sair do grupo "{leavingGroup?.name}"? Você não poderá mais acessar as tarefas deste grupo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLeaveGroup} className="w-full sm:w-auto bg-red-600 hover:bg-red-700">
+              Sair
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
